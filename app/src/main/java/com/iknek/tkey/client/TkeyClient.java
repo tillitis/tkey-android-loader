@@ -89,6 +89,10 @@ public class TkeyClient {
         }catch(Exception e){
             throw new Exception(e);
         }
+        byte[] rx = proto.readFrame(proto.getRspLoadApp(),2,connHandler);
+        if(rx[2] != 0){
+            System.out.println("LoadApp Not OK");
+        }
     }
 
     /**

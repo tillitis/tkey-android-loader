@@ -10,9 +10,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@drawable/ant"
+        android:label="TKey Loader"
+        android:roundIcon="@drawable/ant"
         android:supportsRtl="true"
         android:theme="@style/Theme.Tkey"
         tools:targetApi="31">
@@ -20,8 +20,9 @@
         <activity
             android:name="com.iknek.tkey.MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:directBootAware="true"
-            android:label="@string/app_name"
+            android:label="TKey Loader"
             android:theme="@style/Theme.Tkey">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

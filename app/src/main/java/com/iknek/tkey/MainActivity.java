@@ -6,12 +6,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -39,7 +37,6 @@ public class MainActivity extends AppCompatActivity {
     private UsbManager usbManager;
     private PendingIntent permissionIntent;
     private View viewForSnackbar;
-
     private ButtonController buttonController;
     private ActivityResultLauncher<Intent> resultLauncher;
 
