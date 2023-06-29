@@ -62,7 +62,7 @@ public class ButtonController {
         String name;
         try {
             UDI udi = tkeyClient.getUDI();
-            String a = "Serial: " + udi.serial();
+            String a = "Serial: " + udi.getSerial();
             textView.append(a);
             snapText();
             name = "Got UDI!";

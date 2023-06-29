@@ -1,5 +1,7 @@
 package com.iknek.tkey.client;
 
+import com.hoho.android.usbserial.driver.UsbSerialPort;
+
 public class proto {
     /**
      * Pre-defined list of commands and responses used in TKey communication.
@@ -38,25 +40,26 @@ public class proto {
      * header byte is placed in the first byte in the returned buffer. The
      * command code from cmd is placed in the buffer's second byte.
      */
-    protected int[] newFrameBuf(FwCmd cmd, int id) throws Exception{
+    protected byte[] newFrameBuf(FwCmd cmd, int id) throws Exception{
         CmdLen cmdlen = cmd.getCmdLen();
 
         validate(id, 0, 3, "Frame ID needs to be between 1..3");
         validate(cmd.getEndpoint(), 0, 3, "Endpoint must be 0..3");
         validate(cmdlen.getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        int[] tx = new int[cmdlen.getBytelen()+1];
-        tx[0] = ((id << 5) | (cmd.getEndpoint() << 3) | cmdlen.getByteVal());
-        tx[1] = cmd.getCode();
+        byte[] tx = new byte[cmdlen.getBytelen()+1];
+        tx[0] = (byte) ((id << 5) | (cmd.getEndpoint() << 3) | cmdlen.getByteVal());
+        tx[1] = (byte) cmd.getCode();
         return tx;
     }
+
 
     /**
      * dump(string, int[]) hexdumps data in d with an explaining string s first. It
      * expects d to contain the whole frame as sent on the wire, with the
      * framing protocol header in the first byte.
      */
-    protected void dump(String s, int[] d) throws Exception {
+    protected void dump(String s, byte[] d) throws Exception {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
@@ -74,17 +77,22 @@ public class proto {
      * expectedResp. It returns the whole frame read, and the parsed header
      * byte if successful.
      */
-    protected byte[] readFrame(FwCmd expectedResp, int expectedID, UsbComm con) throws Exception {
-        return readFrame(expectedResp, expectedID, con, false);
+
+    protected void write(byte[] d, UsbComm con) throws Exception {
+        try{
+            con.writeData(d);
+        }catch(Exception e){
+            throw new Exception("Couldn't write" + e);
+        }
     }
 
-    protected byte[] readFrame(FwCmd expectedResp, int expectedID, UsbComm con, boolean last) throws Exception {
+    protected byte[] readFrame(FwCmd expectedResp, int expectedID, UsbComm con) throws Exception {
         byte eEndpoint = expectedResp.getEndpoint();
         validate(expectedID, 0, 3, "Frame ID needs to be between 1..3");
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
         validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        byte[] rxHdr;
+        byte[] rxHdr = new byte[2];
         try{
             rxHdr = con.readData(2);
         }catch(Exception e){
@@ -98,11 +106,10 @@ public class proto {
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
         }
         if(hdr.getResponseNotOk()){
-            byte[] rest = con.readData(hdr.getCmdLen().getBytelen());
+            con.readData(hdr.getCmdLen().getBytelen());
             throw new Exception("Response status not OK");
         }
-        if(!last)
-            if(hdr.getCmdLen() != expectedResp.getCmdLen()) throw new Exception("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
+        if(hdr.getCmdLen() != expectedResp.getCmdLen()) throw new Exception("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
 
         validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
         validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
@@ -111,31 +118,13 @@ public class proto {
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
-            if(expectedResp.getName().equals("rspGetNameVersion") || expectedResp.getName().equals("rspGetUDI") ){
-                rx = con.readData(rx.length);
-            }
-            else readForApp(con, rx, eRespCode);
-
+            rx = con.readData(rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
         if(rx[1] != eRespCode){
             System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
             System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
-        }
-        return rx;
-    }
-
-    /**
-     * This method just handles the TKeys response after app data is written to it.
-     */
-    private byte[] readForApp(UsbComm con, byte[] rx, int eRespCode){
-        byte[] newData = con.readData(50);
-        for (byte newDatum : newData) {
-            if (newDatum == eRespCode) {
-                rx[1] = newDatum;
-                break;
-            }
         }
         return rx;
     }

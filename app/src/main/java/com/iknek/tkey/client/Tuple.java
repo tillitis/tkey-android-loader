@@ -1,17 +1,17 @@
 package com.iknek.tkey.client;
-
 public class Tuple {
     private final int intValue;
-    private final int[] intArray;
+    private final byte[] byteArray;
 
-    public Tuple(int[] byteArray, int intValue) {
-        this.intArray = byteArray;
+    public Tuple(byte[] byteArray, int intValue) {
+        this.byteArray = byteArray;
         this.intValue = intValue;
     }
 
-    public int[] getIntArray() {
-        return intArray;
+    public byte[] getByteArray(){
+        return byteArray;
     }
+
     public int getIntValue() {
         return intValue;
     }

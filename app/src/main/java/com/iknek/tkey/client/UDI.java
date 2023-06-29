@@ -1,7 +1,4 @@
 package com.iknek.tkey.client;
-
-import java.util.Objects;
-
 public final class UDI {
     private final int vpr;
     private final int unnamed;
@@ -21,63 +18,32 @@ public final class UDI {
         this.udi = udi;
     }
 
-    public int vpr() {
+    public int getVpr() {
         return vpr;
     }
 
-    public int unnamed() {
+    public int getUnnamed() {
         return unnamed;
     }
 
-    public int vendorID() {
+    public int getVendorID() {
         return vendorID;
     }
 
-    public int productID() {
+    public int getProductID() {
         return productID;
     }
 
-    public int productRevision() {
+    public int getProductRevision() {
         return productRevision;
     }
 
-    public int serial() {
+    public int getSerial() {
         return serial;
     }
 
-    public short[] udi() {
+    public short[] getUdi() {
         return udi;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (UDI) obj;
-        return this.vpr == that.vpr &&
-                this.unnamed == that.unnamed &&
-                this.vendorID == that.vendorID &&
-                this.productID == that.productID &&
-                this.productRevision == that.productRevision &&
-                this.serial == that.serial &&
-                Objects.equals(this.udi, that.udi);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(vpr, unnamed, vendorID, productID, productRevision, serial, udi);
-    }
-
-    @Override
-    public String toString() {
-        return "UDI[" +
-                "vpr=" + vpr + ", " +
-                "unnamed=" + unnamed + ", " +
-                "vendorID=" + vendorID + ", " +
-                "productID=" + productID + ", " +
-                "productRevision=" + productRevision + ", " +
-                "serial=" + serial + ", " +
-                "udi=" + udi + ']';
     }
 
 }
