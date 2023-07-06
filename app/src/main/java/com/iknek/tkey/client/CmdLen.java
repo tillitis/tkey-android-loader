@@ -1,6 +1,6 @@
 package com.iknek.tkey.client;
 
-enum CmdLen {
+public enum CmdLen {
     CmdLen1(1, 0),
     CmdLen4(4, 1),
     CmdLen32(32, 2),

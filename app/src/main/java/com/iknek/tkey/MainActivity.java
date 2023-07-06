@@ -19,7 +19,9 @@ import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.iknek.tkey.databinding.ActivityMainBinding;
 import com.google.android.material.snackbar.Snackbar;
 import com.iknek.tkey.client.TkeyClient;
@@ -39,13 +41,17 @@ public class MainActivity extends AppCompatActivity {
     private View viewForSnackbar;
     private ButtonController buttonController;
     private ActivityResultLauncher<Intent> resultLauncher;
+    private byte[] fileBytes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
 
         initializeUsbCommunication();
 
@@ -54,8 +60,9 @@ public class MainActivity extends AppCompatActivity {
         tkeyClient = new TkeyClient();
         tkeyClient.main(usbComm);
 
+
         TextView textView = findViewById(R.id.response_msg);
-        buttonController = new ButtonController(this, usbComm, tkeyClient, textView);
+        buttonController = new ButtonController(tkeyClient, textView);
         initializeButtons();
 
         resultLauncher = registerForActivityResult(
@@ -67,16 +74,35 @@ public class MainActivity extends AppCompatActivity {
                             Uri uri = data.getData();
                             try {
                                 InputStream inputStream = getContentResolver().openInputStream(uri);
-                                byte[] fileBytes = readBytes(inputStream);
-                                tkeyClient.getUDI();
-                                Thread.sleep(500);
-                                tkeyClient.LoadApp(fileBytes);
+                                fileBytes = readBytes(inputStream);
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
                         }
                     }
                 });
+    }
+
+    private void setupFragments() {
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            Fragment selectedFragment = null;
+
+            int itemId = item.getItemId();
+            if (itemId == R.id.action_tkey_tools) {
+                selectedFragment = new ToolsFragment();
+            } else if (itemId == R.id.action_signer) {
+                selectedFragment = new SignerFragment();
+            } else if (itemId == R.id.action_verify) {
+                selectedFragment = new VerifyFragment();
+            }
+
+            if (selectedFragment != null) {
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, selectedFragment).commit();
+            }
+
+            return true;
+        });
     }
 
     private byte[] readBytes(InputStream inputStream) throws IOException {
@@ -106,22 +132,19 @@ public class MainActivity extends AppCompatActivity {
         Button getNameButton = findViewById(R.id.getName);
         Button getUDI = findViewById(R.id.getUDI);
         Button btnOpenFile = findViewById(R.id.btnOpenFile);
+        Button getAppName = findViewById(R.id.getAppName);
+        Button loadApp = findViewById(R.id.loadApp);
 
         connectButton.setOnClickListener(buttonController::connectButtonOnClick);
+        getAppName.setOnClickListener(buttonController::getAppNameOnClick);
         getNameButton.setOnClickListener(buttonController::getNameButtonOnClick);
         getUDI.setOnClickListener(buttonController::getUDIButtonOnClick);
-        btnOpenFile.setOnClickListener(this::openFileButtonOnClick);
-    }
-
-    private void openFileButtonOnClick(View v){
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
-        resultLauncher.launch(intent);
+        loadApp.setOnClickListener(v -> buttonController.loadAppOnClick(v, tkeyClient, fileBytes));
+        btnOpenFile.setOnClickListener(v -> buttonController.openFileButtonOnClick(resultLauncher));
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }

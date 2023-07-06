@@ -1,6 +1,5 @@
 package com.iknek.tkey.client;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -24,7 +23,6 @@ public class TkeyClient {
         if (binLen > 102400) throw new Exception("File too big");
 
         loadApp(binLen, uss);
-
         int offset = 0;
         byte[] deviceDigest = new byte[32];
 
@@ -59,6 +57,10 @@ public class TkeyClient {
     /**
      * loadApp() sets the size and USS of the app to be loaded into the TKey.
      */
+    public byte[] newFrameBuf(FwCmd cmd, int ID) throws Exception {
+        return proto.newFrameBuf(cmd,ID);
+    }
+
     private void loadApp(int size, byte[] secretPhrase) throws Exception {
         byte[] tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
         tx[2] = (byte) size;
@@ -74,6 +76,8 @@ public class TkeyClient {
         // TODO: Implement blake2s and USS
         try{
             proto.dump("LoadApp tx", tx);
+
+
         }catch(Exception e){
             throw new Exception(e);
         }
@@ -87,6 +91,7 @@ public class TkeyClient {
             System.out.println("LoadApp Not OK");
         }
     }
+
 
     /**
      * loadAppData() loads a chunk of the raw app binary into the TKey.
@@ -108,9 +113,7 @@ public class TkeyClient {
         }catch (Exception e){
             throw new Exception(e);
         }
-
         connHandler.writeData(tx);
-
         FwCmd cmd;
         if(last) cmd = proto.getRspLoadAppDataReady();
         else     cmd = proto.getRspLoadAppData();
@@ -142,7 +145,7 @@ public class TkeyClient {
      * Unpacks name and prints it to the console.
      * @return the concated string, which can be used elsewhere.
      */
-    private static String unpackName(byte[] raw) {
+    public static String unpackName(byte[] raw) {
         String name0 = new String(raw, 1, 4);
         String name1 = new String(raw, 5, 4);
         long version = ByteBuffer.wrap(raw, 9, 4).order(ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL;
@@ -190,36 +193,32 @@ public class TkeyClient {
     private byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = proto.newFrameBuf(command, ID);
         connHandler.writeData(tx_byte);
+        Thread.sleep(500);
         return proto.readFrame(response, 2, connHandler);
     }
 
-    /**
-     * Method that can be used to send and receive frames from a TKey.
-     */
-    /*
-    public byte[] frameCom(FwCmd command, FwCmd eResp, int id, int eId, int[] data) throws Exception {
-        int[] tx = proto.newFrameBuf(command, id);
-        int[] payload = new int[command.getCmdLen().getBytelen()-1];
-        int copied = Math.min(data.length, payload.length);
-        System.arraycopy(data, 0, payload, 0, copied);
-
-        if (copied < payload.length) {
-            int[] padding = new int[payload.length - copied];
-            System.arraycopy(padding, 0, payload, copied, padding.length-1); //this line does nothing.
-        }
-        System.arraycopy(payload, 0, tx, 2, payload.length);
-        connHandler.writeData(intArrayToByteArray(tx));
-
-        return proto.readFrame(eResp, eId, connHandler);
-    }*/
-
-    public static FwCmd[] getCommands(){
-        return proto.getAllCommands();
+    public void write(byte[] tx){
+        connHandler.writeData(tx);
     }
 
+    public byte[] read(int bytes){
+        return connHandler.readData(bytes);
+    }
 
-    private static byte[] readFile(String fileName) throws IOException {
-        return java.nio.file.Files.readAllBytes(new File(fileName).toPath());
+    public byte[] readFrame(FwCmd cmd, int id) throws Exception {
+        return proto.readFrame(cmd, id,connHandler);
+    }
+
+    public void connect(){
+        connHandler.connectDevice();
+    }
+
+    public boolean isConnected(){
+        return connHandler.isConnected();
+    }
+
+    public void clearIO() throws IOException {
+        connHandler.clear();
     }
 
 }

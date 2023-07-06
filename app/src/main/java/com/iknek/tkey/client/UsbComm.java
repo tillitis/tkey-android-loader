@@ -47,7 +47,7 @@ public class UsbComm {
     public void writeData(byte[] data) {
         if (port != null) {
             try {
-                port.write(data, 1000);
+                port.write(data, 1500); //org 1000
             } catch (IOException e) {
                 System.out.println("ha ha. send error");
             }
@@ -56,24 +56,6 @@ public class UsbComm {
 
     private byte[] bufferStorage = new byte[1];
 
-    /*public byte[] readData(int bytes) {
-        byte[] buffer = new byte[bytes];
-        if (port != null) {
-            try {
-                Thread.sleep(100);
-                port.read(buffer, 500);
-
-                bufferStorage[0] = buffer[buffer.length-1];
-            } catch (IOException e) {
-                System.out.println("ha ha. error");
-
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return buffer;
-    }*/
-
     public byte[] readData(int bytes) {
         byte[] buffer = new byte[bytes];
         byte[] expandedBuffer = new byte[bytes+1];
@@ -81,13 +63,10 @@ public class UsbComm {
 
         if (port != null) {
             try {
-                Thread.sleep(100);
-                port.read(buffer, 500);
+                port.read(buffer, 1000);
                 bufferStorage[0] = buffer[buffer.length-1];
             } catch (IOException e) {
-                System.out.println("ha ha. error");
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                System.out.println("Read error");
             }
         }
         expandedBuffer[0] = bufferStorage[0];
@@ -95,6 +74,19 @@ public class UsbComm {
 
         System.arraycopy(expandedBuffer, 0, finalBuffer, 0, bytes);
         return finalBuffer;
+    }
+
+    /**
+     * Clears read buffer and control lines to ensure no data remains in r/w buffers.
+     */
+    public void clear() throws IOException {
+        byte[] buffer = new byte[129];
+        int bytesRead;
+        do {
+            bytesRead = port.read(buffer, 250);
+        } while (bytesRead > 0);
+        port.getControlLines().clear();
+        port.getSupportedControlLines().clear();
     }
 
     public boolean isConnected() {

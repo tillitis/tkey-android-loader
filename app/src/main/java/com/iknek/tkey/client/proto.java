@@ -1,5 +1,7 @@
 package com.iknek.tkey.client;
 
+import android.util.Log;
+
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 
 public class proto {
@@ -7,14 +9,14 @@ public class proto {
      * Pre-defined list of commands and responses used in TKey communication.
      */
     private static final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
-    private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
-    private final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen.CmdLen128);
-    private final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen.CmdLen4);
-    private final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen.CmdLen128);
-    private final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen.CmdLen4);
-    private final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen.CmdLen128);
-    private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1);
-    private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
+    private static final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
+    private static final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen.CmdLen128);
+    private static final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen.CmdLen4);
+    private static final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen.CmdLen128);
+    private static final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen.CmdLen4);
+    private static final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen.CmdLen128);
+    private static final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1);
+    private static final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
     /**
      * Parses Framing HDR from the passed in int (retrieved from reading 1 byte from TKey).
      */
@@ -59,12 +61,16 @@ public class proto {
      * expects d to contain the whole frame as sent on the wire, with the
      * framing protocol header in the first byte.
      */
+    private int i = 0;
+
     protected void dump(String s, byte[] d) throws Exception {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
         FramingHdr framingHdr = parseFrame(d[0]);
         System.out.println(s + " frame len: " + 1+framingHdr.getCmdLen().getBytelen() + " bytes");
+        i = i + 1000 + framingHdr.getCmdLen().getBytelen();
+        Log.i("sent", "Size sent " + i);
     }
 
     /**
@@ -100,7 +106,6 @@ public class proto {
         }
         FramingHdr hdr;
         try{
-            Thread.sleep(1);
             hdr = parseFrame(rxHdr[1]);
         }catch(Exception e){
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
@@ -109,22 +114,36 @@ public class proto {
             con.readData(hdr.getCmdLen().getBytelen());
             throw new Exception("Response status not OK");
         }
-        if(hdr.getCmdLen() != expectedResp.getCmdLen()) throw new Exception("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
+        if(hdr.getCmdLen() != expectedResp.getCmdLen()){
 
-        validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
-        validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
+            System.out.println("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
+        }
+        if(hdr.getID() != expectedID){
+            System.out.println("miss-match ID");
+            System.out.println("real id: " + hdr.getID());
+            System.out.println("expected id: " + expectedID);
+        }
+        if(hdr.getEndpoint() != eEndpoint){
+            System.out.println("miss-match endpoint");
+            System.out.println("real end: " + hdr.getEndpoint());
+            System.out.println("expected end: " + eEndpoint);
+        }
+
+        //validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
+        //validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 
         byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
+        if(rx[0] != eRespCode){
+            System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
+            System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
+        }
         try{
+            Thread.sleep(10);
             rx = con.readData(rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
-        }
-        if(rx[1] != eRespCode){
-            System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
-            System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
         }
         return rx;
     }

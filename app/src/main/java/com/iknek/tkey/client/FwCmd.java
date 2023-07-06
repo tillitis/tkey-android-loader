@@ -13,6 +13,13 @@ public class FwCmd{
         this.endpoint = 2;
     }
 
+    public FwCmd(int code, String name, CmdLen cmdLen, byte endpoint) {
+        this.code = code;
+        this.name = name;
+        this.cmdLen = cmdLen;
+        this.endpoint = endpoint;
+    }
+
     public int getCode() {
         return code;
     }
