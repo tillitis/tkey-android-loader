@@ -6,7 +6,8 @@
         <item name="colorButtonNormal">#5f88ff</item>
         <item name="colorPrimary">#5f88ff</item>
         <item name="colorAccent">#0000FF</item>
-        <item name="backgroundColor">#edede5</item>
+        <item name="backgroundColor">@color/egg</item>
+        <item name="android:textColor">@color/white</item>
 
     </style>
 

@@ -1,6 +1,5 @@
 package com.iknek.tkey;
 
-import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -8,79 +7,47 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
-import android.net.Uri;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.iknek.tkey.databinding.ActivityMainBinding;
 import com.google.android.material.snackbar.Snackbar;
 import com.iknek.tkey.client.TkeyClient;
 import com.iknek.tkey.client.UsbComm;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 public class MainActivity extends AppCompatActivity {
-    private static final String ACTION_USB_PERMISSION = "com.example.tkey.USB_PERMISSION";
-    private ActivityMainBinding binding;
+    private static final String ACTION_USB_PERMISSION = "com.iknek.tkey.USB_PERMISSION";
     private UsbComm usbComm;
     private TkeyClient tkeyClient;
     private UsbManager usbManager;
     private PendingIntent permissionIntent;
-    private View viewForSnackbar;
-    private ButtonController buttonController;
-    private ActivityResultLauncher<Intent> resultLauncher;
-    private byte[] fileBytes;
-
+    private ButtonController buttonController ;
+    private TextView textView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-
-        initializeUsbCommunication();
-
-        // Com to USB.
         usbComm = new UsbComm(this);
         tkeyClient = new TkeyClient();
         tkeyClient.main(usbComm);
-
-
-        TextView textView = findViewById(R.id.response_msg);
+        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+        textView = findViewById(R.id.response_msg);
         buttonController = new ButtonController(tkeyClient, textView);
-        initializeButtons();
-
-        resultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        Intent data = result.getData();
-                        if (data != null) {
-                            Uri uri = data.getData();
-                            try {
-                                InputStream inputStream = getContentResolver().openInputStream(uri);
-                                fileBytes = readBytes(inputStream);
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }
-                });
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        registerReceiver(usbReceiver, filter);
+        setupFragments();
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragment_container, new ToolsFragment());
+        transaction.commit();
     }
 
     private void setupFragments() {
@@ -92,70 +59,17 @@ public class MainActivity extends AppCompatActivity {
             if (itemId == R.id.action_tkey_tools) {
                 selectedFragment = new ToolsFragment();
             } else if (itemId == R.id.action_signer) {
-                selectedFragment = new SignerFragment();
+                selectedFragment = new SignerFragment(tkeyClient);
             } else if (itemId == R.id.action_verify) {
                 selectedFragment = new VerifyFragment();
             }
 
-            if (selectedFragment != null) {
-                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, selectedFragment).commit();
-            }
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, selectedFragment)
+                    .commit();
 
             return true;
         });
-    }
-
-    private byte[] readBytes(InputStream inputStream) throws IOException {
-        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-        int bufferSize = 1024;
-        byte[] buffer = new byte[bufferSize];
-
-        int len = 0;
-        while ((len = inputStream.read(buffer)) != -1) {
-            byteBuffer.write(buffer, 0, len);
-        }
-        return byteBuffer.toByteArray();
-    }
-
-    private void initializeUsbCommunication() {
-        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        this.registerReceiver(usbReceiver, filter);
-        viewForSnackbar = findViewById(android.R.id.content);
-    }
-
-    private void initializeButtons() {
-        Button connectButton = findViewById(R.id.connect);
-        Button getNameButton = findViewById(R.id.getName);
-        Button getUDI = findViewById(R.id.getUDI);
-        Button btnOpenFile = findViewById(R.id.btnOpenFile);
-        Button getAppName = findViewById(R.id.getAppName);
-        Button loadApp = findViewById(R.id.loadApp);
-
-        connectButton.setOnClickListener(buttonController::connectButtonOnClick);
-        getAppName.setOnClickListener(buttonController::getAppNameOnClick);
-        getNameButton.setOnClickListener(buttonController::getNameButtonOnClick);
-        getUDI.setOnClickListener(buttonController::getUDIButtonOnClick);
-        loadApp.setOnClickListener(v -> buttonController.loadAppOnClick(v, tkeyClient, fileBytes));
-        btnOpenFile.setOnClickListener(v -> buttonController.openFileButtonOnClick(resultLauncher));
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
@@ -167,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if(device != null){
                             usbComm.connectDevice();
-                            buttonController.setConnectionStatus(false);
+                            ButtonController.setConnectionStatus(false);
                         }
                     } else {
                         System.out.println("Permission denied for device " + device);
@@ -183,13 +97,22 @@ public class MainActivity extends AppCompatActivity {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null) {
                     buttonController.setConnectionStatus(false);
-                    Snackbar.make(viewForSnackbar, "TKey disconnected!", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    View view = getWindow().getDecorView().findViewById(android.R.id.content);
+                    Snackbar.make(view, "TKey disconnected!", Snackbar.LENGTH_LONG).setAction("Action", null).show();
                 }
             }
         }
     };
 
+    TkeyClient getClient(){
+        return tkeyClient;
+    }
+
     public void requestPermission(UsbDevice device) {
         usbManager.requestPermission(device, permissionIntent);
+    }
+
+    public ButtonController getButtonController() {
+        return buttonController;
     }
 }

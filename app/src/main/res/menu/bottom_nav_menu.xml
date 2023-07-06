@@ -1,0 +1,15 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item
+        android:id="@+id/action_tkey_tools"
+        android:title="TKey tools" />
+    <item
+        android:id="@+id/action_signer"
+        android:title="Signer"
+        />
+    <item
+        android:id="@+id/action_verify"
+        android:title="Verify" />
+
+
+</menu>
+

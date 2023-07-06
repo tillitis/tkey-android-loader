@@ -2,31 +2,46 @@ package com.iknek.tkey;
 
 import android.content.Intent;
 import android.text.method.ScrollingMovementMethod;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import com.iknek.tkey.client.TkeyClient;
 import com.iknek.tkey.client.UDI;
 import com.google.android.material.snackbar.Snackbar;
-import com.iknek.tkey.client.tkey.TK1sign;
+import com.iknek.tkey.client.signer.TK1sign;
 
 public class ButtonController {
     private final TextView textView;
     private final TkeyClient tkeyClient;
-    private boolean isConnected;
+    private static boolean isConnected;
     private boolean appIsLoaded = false;
+
+    private void adjustPadding() {
+
+        int lineHeight = textView.getLineHeight();
+        int totalHeight = textView.getHeight();
+        int lines = textView.getLineCount();
+        int padding = Math.max(0, totalHeight - lines * lineHeight);
+        textView.setPadding(0, padding, 0, 0);
+    }
 
     public ButtonController(TkeyClient tkeyClient, TextView textView) {
         this.tkeyClient = tkeyClient;
         this.textView = textView;
         textView.setMovementMethod(new ScrollingMovementMethod());
+        snapText();
+
     }
 
-    private void snapText(){
-        textView.scrollTo(0, textView.getLayout().getLineTop(textView.getLineCount()) - textView.getHeight());
+    private void snapText() {
+        textView.post(() -> {
+            textView.setGravity(Gravity.TOP | Gravity.START); // Adjust the text alignment to top-left
+            textView.scrollTo(0, 0); // Scroll to the top
+        });
     }
-    public void setConnectionStatus(boolean status){
-        this.isConnected = status;
+    public static void setConnectionStatus(boolean status){
+        isConnected = status;
     }
 
     public void connectButtonOnClick(View v) {
@@ -47,8 +62,7 @@ public class ButtonController {
         resultLauncher.launch(intent);
     }
 
-    public void getAppNameOnClick(View v){
-        TK1sign signer = new TK1sign(tkeyClient);
+    public void getAppNameOnClick(View v, TK1sign signer){
         if(!appIsLoaded){
             Snackbar.make(v, "Load app first!", Snackbar.LENGTH_LONG).setAction("Action", null).show();
         }
@@ -63,12 +77,24 @@ public class ButtonController {
         }
     }
 
+    public void getPubKeyOnClick(View v, TK1sign signer){
+        try{
+            signer.getPubKey();
+            textView.append("Public key received" + "\n" + "\n");
+        }catch (Exception e){
+            String rsp = "Failed to get public key";
+            System.out.println(rsp);
+            Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show();
+        }
+    }
+
     public void loadAppOnClick(View v, TkeyClient tk, byte[] app){
         if(!appIsLoaded){
             new Thread(() -> {
                 try{
+                    textView.append("Loading app" + "\n" + "\n");
+                    snapText();
                     tk.LoadApp(app);
-                    Snackbar.make(v, "Loading App", Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     textView.append("App Loaded" + "\n" + "\n");
                     snapText();
                     appIsLoaded = true;

@@ -61,16 +61,12 @@ public class proto {
      * expects d to contain the whole frame as sent on the wire, with the
      * framing protocol header in the first byte.
      */
-    private int i = 0;
-
     protected void dump(String s, byte[] d) throws Exception {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
         FramingHdr framingHdr = parseFrame(d[0]);
-        System.out.println(s + " frame len: " + 1+framingHdr.getCmdLen().getBytelen() + " bytes");
-        i = i + 1000 + framingHdr.getCmdLen().getBytelen();
-        Log.i("sent", "Size sent " + i);
+        System.out.println(s + " frame len: " + framingHdr.getCmdLen().getBytelen() + " bytes");
     }
 
     /**
@@ -128,7 +124,6 @@ public class proto {
             System.out.println("real end: " + hdr.getEndpoint());
             System.out.println("expected end: " + eEndpoint);
         }
-
         //validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
         //validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 

@@ -1,8 +1,10 @@
-package com.iknek.tkey.client.tkey;
+package com.iknek.tkey.client.signer;
 
 import com.iknek.tkey.client.CmdLen;
 import com.iknek.tkey.client.FwCmd;
 import com.iknek.tkey.client.TkeyClient;
+
+import java.util.Arrays;
 
 public class TK1sign {
     private static final FwCmd cmdGetPubkey       = new FwCmd(0x01, "cmdGetPubkey", CmdLen.CmdLen1, (byte) 3);
@@ -32,5 +34,15 @@ public class TK1sign {
         Thread.sleep(500);
         byte[] rx = tk1.readFrame(rspGetNameVersion,2);
         return TkeyClient.unpackName(rx);
+    }
+
+    public byte[] getPubKey() throws Exception {
+
+        byte[] tx = tk1.newFrameBuf(cmdGetPubkey,2);
+        tk1.write(tx);
+        Thread.sleep(500);
+        byte[] rx = tk1.readFrame(rspGetPubkey,2);
+        System.out.println(Arrays.toString(rx));
+        return rx;
     }
 }
