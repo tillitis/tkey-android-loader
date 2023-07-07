@@ -3,7 +3,6 @@ package com.iknek.tkey.client.signer;
 import com.iknek.tkey.client.CmdLen;
 import com.iknek.tkey.client.FwCmd;
 import com.iknek.tkey.client.TkeyClient;
-
 import java.util.Arrays;
 
 public class TK1sign {
@@ -44,5 +43,19 @@ public class TK1sign {
         byte[] rx = tk1.readFrame(rspGetPubkey,2);
         System.out.println(Arrays.toString(rx));
         return rx;
+    }
+
+    public byte[] getSig() throws Exception {
+        byte[] tx = tk1.newFrameBuf(cmdGetSig,2);
+
+        tk1.write(tx);
+
+        byte[] rx = tk1.readFrame(rspGetSig,2);
+
+        //Status OK: TODO
+        if(rx[2] != 1){
+            System.out.println("Status not ok");
+        }
+        return Arrays.copyOfRange(rx,3,rx.length);
     }
 }

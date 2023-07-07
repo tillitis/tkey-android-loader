@@ -55,7 +55,6 @@ public class proto {
         return tx;
     }
 
-
     /**
      * dump(string, int[]) hexdumps data in d with an explaining string s first. It
      * expects d to contain the whole frame as sent on the wire, with the
