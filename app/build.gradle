@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.iknek.tkey'
+    namespace 'com.tillitis.tkey'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.iknek.tkey"
+        applicationId "com.tillitis.tkey"
         minSdk 29
         targetSdk 33
         versionCode 1
@@ -29,18 +29,17 @@ android {
     buildFeatures {
         viewBinding true
     }
-
 }
 
 dependencies {
-
     implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.github.mik3y:usb-serial-for-android:3.5.1'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.74'
     implementation 'com.google.android.material:material:1.5.0'
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'net.i2p.crypto:eddsa:0.3.0'
     implementation 'androidx.navigation:navigation-fragment:2.5.0'
     implementation 'androidx.navigation:navigation-ui:2.5.0'
-    implementation fileTree(dir: 'C:\\Users\\Dator\\AndroidStudioProjects\\tkey\\app\\libs', include: ['*.aar', '*.jar'], exclude: [])
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
