@@ -61,7 +61,7 @@ public class proto {
      * expects d to contain the whole frame as sent on the wire, with the
      * framing protocol header in the first byte.
      */
-    protected void dump(String s, byte[] d) throws Exception {
+    public void dump(String s, byte[] d) throws Exception {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
@@ -94,15 +94,15 @@ public class proto {
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
         validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        byte[] rxHdr = new byte[2];
+        byte[] rxHdr = new byte[1];
         try{
-            rxHdr = con.readData(2);
+            rxHdr = con.readData(1);
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
         FramingHdr hdr;
         try{
-            hdr = parseFrame(rxHdr[1]);
+            hdr = parseFrame(rxHdr[0]);
         }catch(Exception e){
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
         }
@@ -114,31 +114,27 @@ public class proto {
 
             System.out.println("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
         }
-        if(hdr.getID() != expectedID){
-            System.out.println("miss-match ID");
-            System.out.println("real id: " + hdr.getID());
-            System.out.println("expected id: " + expectedID);
-        }
-        if(hdr.getEndpoint() != eEndpoint){
-            System.out.println("miss-match endpoint");
-            System.out.println("real end: " + hdr.getEndpoint());
-            System.out.println("expected end: " + eEndpoint);
-        }
+        if(hdr.getID() != expectedID) System.out.println("miss-match ID" + " real id: "
+                                                + hdr.getID() + " expected id: " + expectedID);
+
+        if(hdr.getEndpoint() != eEndpoint) System.out.println("miss-match endpoint" + " real end: "
+                                                + hdr.getEndpoint() + " expected end: " + eEndpoint);
+
         //validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
         //validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 
         byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
-        if(rx[0] != eRespCode){
-            System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
-            System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
-        }
         try{
             Thread.sleep(10);
             rx = con.readData(rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
+        }
+        if(rx[0] != eRespCode){
+            System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
+            System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
         }
         return rx;
     }
@@ -148,20 +144,6 @@ public class proto {
      */
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
         if (value < min || value > max) throw new Exception(errorMessage);
-    }
-
-    FwCmd[] getAllCommands() {
-        return new FwCmd[]{
-                cmdGetNameVersion,
-                rspGetNameVersion,
-                cmdLoadApp,
-                rspLoadApp,
-                cmdLoadAppData,
-                rspLoadAppData,
-                rspLoadAppDataReady,
-                cmdGetUDI,
-                rspGetUDI
-        };
     }
 
     public FwCmd getCmdGetNameVersion() {

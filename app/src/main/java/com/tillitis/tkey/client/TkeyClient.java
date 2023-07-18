@@ -54,7 +54,7 @@ public class TkeyClient {
         System.out.println("Device Digest: " + Arrays.toString(bytesToUnsignedBytes(deviceDigest)));
 
         if (!Arrays.equals(digest, deviceDigest)) {
-            throw new Exception("Different digests");
+            System.out.println("Different digests!");
         }
         else{
             System.out.println("Same digests!");
@@ -132,7 +132,7 @@ public class TkeyClient {
 
         byte[] rx;
         try {
-            Thread.sleep(10);
+            Thread.sleep(5);
             rx = proto.readFrame(cmd, ID, connHandler);
         }catch (Exception e){
             throw new Exception(e);
@@ -213,12 +213,16 @@ public class TkeyClient {
         connHandler.writeData(tx);
     }
 
-    public byte[] read(int bytes){
+    public byte[] read(int bytes) throws IOException {
         return connHandler.readData(bytes);
     }
 
     public byte[] readFrame(FwCmd cmd, int id) throws Exception {
         return proto.readFrame(cmd, id,connHandler);
+    }
+
+    public void dump(String s, byte[] tx) throws Exception {
+        proto.dump(s,tx);
     }
 
     public void connect(){

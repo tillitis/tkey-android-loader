@@ -11,6 +11,7 @@ import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 public class UsbComm {
@@ -47,7 +48,7 @@ public class UsbComm {
     public void writeData(byte[] data) {
         if (port != null) {
             try {
-                port.write(data, 1500);
+                port.write(data, 0);
             } catch (IOException e) {
                 System.out.println("Write error");
             }
@@ -57,23 +58,30 @@ public class UsbComm {
     private byte[] bufferStorage = new byte[1];
 
     public byte[] readData(int bytes) {
-        byte[] buffer = new byte[bytes];
-        byte[] expandedBuffer = new byte[bytes+1];
-        byte[] finalBuffer = new byte[bytes];
-
-        if (port != null) {
+        if(bytes == 1 && port != null){
+            byte[] buffer = new byte[bytes+1];
             try {
-                port.read(buffer, 1000);
-                bufferStorage[0] = buffer[buffer.length-1];
+                port.read(buffer, 0);
+                bufferStorage[0] = buffer[1];
             } catch (IOException e) {
                 System.out.println("Read error");
             }
+            return Arrays.copyOfRange(buffer,0,1);
         }
-        expandedBuffer[0] = bufferStorage[0];
-        System.arraycopy(buffer, 0, expandedBuffer, 1, buffer.length);
-
-        System.arraycopy(expandedBuffer, 0, finalBuffer, 0, bytes);
-        return finalBuffer;
+        else{
+            byte[] buffer = new byte[bytes];
+            byte savedbyte = bufferStorage[0];
+            try {
+                port.read(buffer, 0);
+                bufferStorage[0] = buffer[bytes-1];
+            } catch (IOException e) {
+                System.out.println("Read error");
+            }
+            byte[] expandedbuffer = new byte[bytes];
+            System.arraycopy(buffer,0,expandedbuffer,1,buffer.length-1);
+            expandedbuffer[0] = savedbyte;
+            return expandedbuffer;
+        }
     }
 
     /**

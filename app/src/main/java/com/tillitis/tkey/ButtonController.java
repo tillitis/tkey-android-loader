@@ -15,6 +15,8 @@ import com.tillitis.tkey.client.UDI;
 import com.google.android.material.snackbar.Snackbar;
 import com.tillitis.tkey.client.signer.TK1sign;
 
+import java.util.Arrays;
+
 public class ButtonController {
     private final TextView textView;
     private final TkeyClient tkeyClient;
@@ -71,16 +73,22 @@ public class ButtonController {
         }
     }
 
-    public void getPubKeyOnClick(View v, TK1sign signer){
-        try{
-            tkeyClient.clearIO();
-            signer.getPubKey();
-            textView.append("Public key received" + "\n" + "\n");
-        }catch (Exception e){
-            String rsp = "Failed to get public key";
-            System.out.println(rsp);
-            Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show();
-        }
+    public void getPubKeyOnClick(final View v, final TK1sign signer){
+        new Thread(() -> {
+
+            try {
+                String key = Arrays.toString(signer.getPubKey());
+                textView.append("KEY: " + key + "\n\n");
+                snapText();
+                textView.append("Public key received" + "\n" + "\n");
+                snapText();
+            } catch (Exception e) {
+                final String rsp = "Failed to get public key";
+                System.out.println(rsp);
+
+                v.post(() -> Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show());
+            }
+        }).start();
     }
 
     public void loadAppOnClick(View v, TkeyClient tk, byte[] app){

@@ -5,27 +5,29 @@
 
 package com.tillitis.tkey.client.signer;
 
-import com.tillitis.tkey.client.CmdLen;
+import static com.tillitis.tkey.client.CmdLen.*;
 import com.tillitis.tkey.client.FwCmd;
 import com.tillitis.tkey.client.TkeyClient;
+import com.tillitis.tkey.client.proto;
+
 import java.util.Arrays;
 
 import net.i2p.crypto.eddsa.EdDSAEngine;
 import net.i2p.crypto.eddsa.EdDSAPublicKey;
 
 public class TK1sign {
-    private static final FwCmd cmdGetPubkey       = new FwCmd(0x01, "cmdGetPubkey", CmdLen.CmdLen1, (byte) 3);
-    private static final FwCmd rspGetPubkey       = new FwCmd(0x02, "rspGetPubkey", CmdLen.CmdLen128, (byte) 3);
-    private static final FwCmd cmdSetSize         = new FwCmd(0x03, "cmdSetSize", CmdLen.CmdLen32, (byte) 3);
-    private static final FwCmd rspSetSize         = new FwCmd(0x04, "rspSetSize", CmdLen.CmdLen4, (byte) 3);
-    private static final FwCmd cmdSignData        = new FwCmd(0x05, "cmdSignData", CmdLen.CmdLen128, (byte) 3);
-    private static final FwCmd rspSignData        = new FwCmd(0x06, "rspSignData", CmdLen.CmdLen4, (byte) 3);
-    private static final FwCmd cmdGetSig          = new FwCmd(0x07, "cmdGetSig", CmdLen.CmdLen1, (byte) 3);
-    private static final FwCmd rspGetSig          = new FwCmd(0x08, "rspGetSig", CmdLen.CmdLen128, (byte) 3);
-    private static final FwCmd cmdGetNameVersion  = new FwCmd(0x09, "cmdGetNameVersion", CmdLen.CmdLen1, (byte) 3);
-    private static final FwCmd rspGetNameVersion  = new FwCmd(0x0a, "rspGetNameVersion", CmdLen.CmdLen32, (byte) 3);
-    private static final FwCmd cmdGetFirmwareHash = new FwCmd(0x0b, "cmdGetFirmwareHash", CmdLen.CmdLen32, (byte) 3);
-    private static final FwCmd rspGetFirmwareHash = new FwCmd(0x0c, "rspGetFirmwareHash", CmdLen.CmdLen128, (byte) 3);
+    private static final FwCmd cmdGetPubkey       = new FwCmd(0x01, "cmdGetPubkey", CmdLen1, (byte) 3);
+    private static final FwCmd rspGetPubkey       = new FwCmd(0x02, "rspGetPubkey", CmdLen128, (byte) 3);
+    private static final FwCmd cmdSetSize         = new FwCmd(0x03, "cmdSetSize", CmdLen32, (byte) 3);
+    private static final FwCmd rspSetSize         = new FwCmd(0x04, "rspSetSize", CmdLen4, (byte) 3);
+    private static final FwCmd cmdSignData        = new FwCmd(0x05, "cmdSignData", CmdLen128, (byte) 3);
+    private static final FwCmd rspSignData        = new FwCmd(0x06, "rspSignData", CmdLen4, (byte) 3);
+    private static final FwCmd cmdGetSig          = new FwCmd(0x07, "cmdGetSig", CmdLen1, (byte) 3);
+    private static final FwCmd rspGetSig          = new FwCmd(0x08, "rspGetSig", CmdLen128, (byte) 3);
+    private static final FwCmd cmdGetNameVersion  = new FwCmd(0x09, "cmdGetNameVersion", CmdLen1, (byte) 3);
+    private static final FwCmd rspGetNameVersion  = new FwCmd(0x0a, "rspGetNameVersion", CmdLen32, (byte) 3);
+    private static final FwCmd cmdGetFirmwareHash = new FwCmd(0x0b, "cmdGetFirmwareHash", CmdLen32, (byte) 3);
+    private static final FwCmd rspGetFirmwareHash = new FwCmd(0x0c, "rspGetFirmwareHash", CmdLen128, (byte) 3);
 
     private static final int maxSignSize = 4096;
     private TkeyClient tk1;
@@ -48,11 +50,9 @@ public class TK1sign {
     public byte[] getPubKey() throws Exception {
 
         byte[] tx = tk1.newFrameBuf(cmdGetPubkey,2);
+        tk1.dump("S", tx);
         tk1.write(tx);
-        Thread.sleep(500);
-        byte[] rx = tk1.readFrame(rspGetPubkey,2);
-        System.out.println(Arrays.toString(rx));
-        return rx;
+        return tk1.readFrame(rspGetPubkey,2);
     }
 
     public byte[] getSig() throws Exception {
