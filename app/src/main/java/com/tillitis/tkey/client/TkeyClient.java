@@ -12,10 +12,10 @@ import org.bouncycastle.crypto.digests.Blake2sDigest;
 
 public class TkeyClient {
     private static final proto proto = new proto();
-    private UsbComm connHandler;
+    private SerialPort connHandler;
     private static final int ID = 2;
 
-    public void main(UsbComm com){
+    public void main(SerialPort com){
         connHandler = com;
     }
 
@@ -99,6 +99,7 @@ public class TkeyClient {
         }catch(Exception e){
             throw new Exception(e);
         }
+
         byte[] rx = proto.readFrame(proto.getRspLoadApp(),2,connHandler);
         if(rx[2] != 0){
             System.out.println("LoadApp Not OK");
@@ -138,8 +139,8 @@ public class TkeyClient {
             throw new Exception(e);
         }
         if(last){
-            byte[] digest = new byte[32];
-            System.arraycopy(rx, 3, digest,0 ,32);
+            byte[] digest = new byte[128];
+            System.arraycopy(rx, 2, digest,0 ,32);
             return new Tuple(digest,copied);
         }
         return new Tuple(new byte[32], copied);
@@ -202,7 +203,7 @@ public class TkeyClient {
      * getData is used in both getNameVersion and getUDI to send instructions and receive
      * replies + data from the TKey.
      */
-    private byte[] getData(FwCmd command, FwCmd response) throws Exception {
+    public byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = proto.newFrameBuf(command, ID);
         connHandler.writeData(tx_byte);
         Thread.sleep(500);
@@ -223,6 +224,10 @@ public class TkeyClient {
 
     public void dump(String s, byte[] tx) throws Exception {
         proto.dump(s,tx);
+    }
+
+    public void disconnect() throws IOException {
+        connHandler.disconnect();
     }
 
     public void connect(){

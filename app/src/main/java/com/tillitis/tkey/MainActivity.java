@@ -20,11 +20,11 @@ import androidx.fragment.app.FragmentTransaction;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.tillitis.tkey.client.TkeyClient;
-import com.tillitis.tkey.client.UsbComm;
+import com.tillitis.tkey.client.SerialPort;
 
 public class MainActivity extends AppCompatActivity {
     private static final String ACTION_USB_PERMISSION = "com.iknek.tkey.USB_PERMISSION";
-    private UsbComm usbComm;
+    private SerialPort serialPort;
     private TkeyClient tkeyClient;
     private UsbManager usbManager;
     private PendingIntent permissionIntent;
@@ -35,9 +35,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        usbComm = new UsbComm(this);
+        serialPort = new SerialPort(this);
         tkeyClient = new TkeyClient();
-        tkeyClient.main(usbComm);
+        tkeyClient.main(serialPort);
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
         textView = findViewById(R.id.response_msg);
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                     UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if(device != null){
-                            usbComm.connectDevice();
+                            serialPort.connectDevice();
                             ButtonController.setConnectionStatus(false);
                         }
                     } else {

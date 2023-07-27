@@ -6,14 +6,13 @@
 package com.tillitis.tkey.client.signer;
 
 import static com.tillitis.tkey.client.CmdLen.*;
+import static com.tillitis.tkey.client.TkeyClient.unpackName;
 import com.tillitis.tkey.client.FwCmd;
 import com.tillitis.tkey.client.TkeyClient;
-import com.tillitis.tkey.client.proto;
-
 import java.util.Arrays;
-
-import net.i2p.crypto.eddsa.EdDSAEngine;
-import net.i2p.crypto.eddsa.EdDSAPublicKey;
+import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
+import org.bouncycastle.crypto.signers.Ed25519Signer;
 
 public class TK1sign {
     private static final FwCmd cmdGetPubkey       = new FwCmd(0x01, "cmdGetPubkey", CmdLen1, (byte) 3);
@@ -26,49 +25,61 @@ public class TK1sign {
     private static final FwCmd rspGetSig          = new FwCmd(0x08, "rspGetSig", CmdLen128, (byte) 3);
     private static final FwCmd cmdGetNameVersion  = new FwCmd(0x09, "cmdGetNameVersion", CmdLen1, (byte) 3);
     private static final FwCmd rspGetNameVersion  = new FwCmd(0x0a, "rspGetNameVersion", CmdLen32, (byte) 3);
-    private static final FwCmd cmdGetFirmwareHash = new FwCmd(0x0b, "cmdGetFirmwareHash", CmdLen32, (byte) 3);
-    private static final FwCmd rspGetFirmwareHash = new FwCmd(0x0c, "rspGetFirmwareHash", CmdLen128, (byte) 3);
+    private static final FwCmd cmdSignPhData = new FwCmd(0x0b, "cmdSignPhData", CmdLen128, (byte) 3);
+    private static final FwCmd rspSignPhData = new FwCmd(0x0c, "rspSignPhnData", CmdLen4, (byte) 3);
+    private static TkeyClient tk1;
+    private static final byte statusOK = 0x00;
 
-    private static final int maxSignSize = 4096;
-    private TkeyClient tk1;
-
-    private final byte statusOK = 0x00;
-
-    public TK1sign(TkeyClient tkeyClient){
-        tk1 = tkeyClient;
+    public TK1sign(TkeyClient client) {
+        tk1 = client;
     }
 
-    public String getAppNameVersion() throws Exception {
+    public static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * GetAppNameVersion gets the name and version of the running app in the same style as the stick itself.
+     */
+    public static String getAppNameVersion() throws Exception {
         tk1.clearIO();
-        byte[] tx = tk1.newFrameBuf(cmdGetNameVersion,2);
-        tk1.write(tx);
-        Thread.sleep(500);
-        byte[] rx = tk1.readFrame(rspGetNameVersion,2);
-        return TkeyClient.unpackName(rx);
+        Thread.sleep(200);
+        byte[] data = tk1.getData(cmdGetNameVersion,rspGetNameVersion);
+        return unpackName(data);
     }
 
-    public byte[] getPubKey() throws Exception {
-
-        byte[] tx = tk1.newFrameBuf(cmdGetPubkey,2);
-        tk1.dump("S", tx);
-        tk1.write(tx);
-        return tk1.readFrame(rspGetPubkey,2);
+    /**
+     * GetPubkey fetches the public key of the signer.
+     */
+    public static byte[] getPubKey() throws Exception {
+        tk1.clearIO();
+        Thread.sleep(200);
+        byte[] data = tk1.getData(cmdGetPubkey,rspGetPubkey);
+        return Arrays.copyOfRange(data,1,33);
     }
 
-    public byte[] getSig() throws Exception {
-        byte[] tx = tk1.newFrameBuf(cmdGetSig,2);
-
-        tk1.write(tx);
-        Thread.sleep(500);
-        byte[] rx = tk1.readFrame(rspGetSig,2);
-
-        if(rx[2] != statusOK){
+    /**
+     * getSig gets the ed25519 signature from the signer app, if available.
+     */
+    public static byte[] getSig() throws Exception {
+        byte[] data = tk1.getData(cmdGetSig,rspGetSig);
+        if(data[1] != statusOK){
             System.out.println("Status not ok");
         }
-        return Arrays.copyOfRange(rx,3,rx.length);
+        return Arrays.copyOfRange(data,2,66);
     }
 
-    public byte[] sign(byte[] in) throws Exception {
+    /**
+     * Sign signs the message in data and returns an ed25519 signature.
+     */
+    public static byte[] sign(byte[] in) throws Exception {
+        Thread.sleep(200);
+        tk1.clearIO();
+
         setSize(in.length);
         int offset = 0;
         for(int nsent = 0; offset < in.length; offset+= nsent){
@@ -76,26 +87,47 @@ public class TK1sign {
         }
         if(offset > in.length) throw new Exception("Transmitted more than expected");
 
-        return getSig();
+        Thread.sleep(100);
+        tk1.clearIO();
+        byte[] sig = getSig();
+        Thread.sleep(100);
+        tk1.clearIO();
+        if(!verify(getPubKey(),in,sig)){
+            throw new Exception("Verification Failed!");
+        }
+
+        return sig;
     }
 
-    public void setSize(int size) throws Exception {
+    public static boolean verify(byte[] publicKey, byte[] message, byte[] signature) {
+        AsymmetricKeyParameter pkParam = new Ed25519PublicKeyParameters(publicKey, 0);
+        Ed25519Signer signer = new Ed25519Signer();
+        signer.init(false, pkParam);
+        signer.update(message, 0, message.length);
+        return signer.verifySignature(signature);
+    }
+
+    /**
+     * SetSize sets the size of the data to sign.
+     */
+    public static void setSize(int size) throws Exception {
         byte[] tx = tk1.newFrameBuf(cmdSetSize,2);
         tx[2] = (byte) size;
         tx[3] = (byte) (size >> 8);
         tx[4] = (byte) (size >> 16);
         tx[5] = (byte) (size >> 24);
         tk1.write(tx);
-
         Thread.sleep(500);
-
         byte[] rx = tk1.readFrame(rspSetSize,2);
-        if(rx[2] != statusOK){
+        if(rx[1] != statusOK){
             System.out.println("Status not ok");
         }
     }
 
-    private int signLoad(byte[] content) throws Exception {
+    /**
+     * signload loads a chunk of a message to sign and waits for a response from the signer.
+     */
+    private static int signLoad(byte[] content) throws Exception {
         byte[] tx = tk1.newFrameBuf(cmdSignData,2);
 
         byte[] payload = new byte[cmdSignData.getCmdLen().getBytelen()-1];
@@ -121,5 +153,24 @@ public class TK1sign {
             System.out.println("Status not ok");
         }
         return copied;
+    }
+
+    /**
+     * SignPh signs a SHA512 pre-hashed message in data and returns an ed25519ph signature.
+     */
+    public static byte[] signPh(byte[] data) throws Exception {
+        Thread.sleep(200);
+        tk1.clearIO();
+
+        byte[] tx = tk1.newFrameBuf(cmdSignPhData,3);
+        System.arraycopy(data,0,tx,2,data.length);
+
+        tk1.write(tx);
+        byte[] rx = tk1.readFrame(rspSignPhData,3);
+
+        if(rx[2] != statusOK){
+            System.out.println("Status not ok");
+        }
+        return getSig();
     }
 }

@@ -17,9 +17,9 @@ public class SignerFragment extends Fragment {
     private MainActivity mainActivity;
     private ButtonController buttonController;
     private TkeyClient tk;
-
     private TK1sign signer;
     public SignerFragment(TkeyClient client) {
+        tk = client;
         signer = new TK1sign(client);
     }
 

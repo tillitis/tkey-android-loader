@@ -4,20 +4,22 @@
  */
 
 package com.tillitis.tkey.client;
+import static com.tillitis.tkey.client.CmdLen.*;
 
 public class proto {
     /**
      * Pre-defined list of commands and responses used in TKey communication.
      */
-    private static final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen.CmdLen1);
-    private static final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen.CmdLen32);
-    private static final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen.CmdLen128);
-    private static final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen.CmdLen4);
-    private static final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen.CmdLen128);
-    private static final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen.CmdLen4);
-    private static final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen.CmdLen128);
-    private static final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen.CmdLen1);
-    private static final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen.CmdLen32);
+    private static final FwCmd cmdGetNameVersion = new FwCmd(0x01, "cmdGetNameVersion", CmdLen1);
+    private final FwCmd rspGetNameVersion = new FwCmd(0x02, "rspGetNameVersion", CmdLen32);
+    private final FwCmd cmdLoadApp = new FwCmd(0x03, "cmdLoadApp", CmdLen128);
+    private final FwCmd rspLoadApp = new FwCmd(0x04, "rspLoadApp", CmdLen4);
+    private final FwCmd cmdLoadAppData = new FwCmd(0x05, "cmdLoadAppData", CmdLen128);
+    private final FwCmd rspLoadAppData = new FwCmd(0x06, "rspLoadAppData", CmdLen4);
+    private final FwCmd rspLoadAppDataReady = new FwCmd(0x07, "rspLoadAppDataReady", CmdLen128);
+    private final FwCmd cmdGetUDI = new FwCmd(0x08, "cmdGetUDI", CmdLen1);
+    private final FwCmd rspGetUDI = new FwCmd(0x09, "rspGetUDI", CmdLen32);
+
     /**
      * Parses Framing HDR from the passed in int (retrieved from reading 1 byte from TKey).
      */
@@ -61,12 +63,23 @@ public class proto {
      * expects d to contain the whole frame as sent on the wire, with the
      * framing protocol header in the first byte.
      */
-    public void dump(String s, byte[] d) throws Exception {
+    protected void dump(String s, byte[] d) throws Exception {
         if(d == null || d.length == 0){
             throw new Exception("No data!");
         }
         FramingHdr framingHdr = parseFrame(d[0]);
         System.out.println(s + " frame len: " + framingHdr.getCmdLen().getBytelen() + " bytes");
+    }
+
+    /**
+     * Writes an array to the TKey, using the specified SerialPort.
+     */
+    protected void write(byte[] d, SerialPort con) throws Exception {
+        try{
+            con.writeData(d, d.length);
+        }catch(Exception e){
+            throw new Exception("Couldn't write" + e);
+        }
     }
 
     /**
@@ -79,16 +92,7 @@ public class proto {
      * expectedResp. It returns the whole frame read, and the parsed header
      * byte if successful.
      */
-
-    protected void write(byte[] d, UsbComm con) throws Exception {
-        try{
-            con.writeData(d);
-        }catch(Exception e){
-            throw new Exception("Couldn't write" + e);
-        }
-    }
-
-    protected byte[] readFrame(FwCmd expectedResp, int expectedID, UsbComm con) throws Exception {
+    protected byte[] readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
         byte eEndpoint = expectedResp.getEndpoint();
         validate(expectedID, 0, 3, "Frame ID needs to be between 1..3");
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
@@ -97,6 +101,7 @@ public class proto {
         byte[] rxHdr = new byte[1];
         try{
             rxHdr = con.readData(1);
+
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
@@ -110,24 +115,17 @@ public class proto {
             con.readData(hdr.getCmdLen().getBytelen());
             throw new Exception("Response status not OK");
         }
-        if(hdr.getCmdLen() != expectedResp.getCmdLen()){
+        if(hdr.getCmdLen() != expectedResp.getCmdLen()) System.out.println("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
 
-            System.out.println("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
-        }
-        if(hdr.getID() != expectedID) System.out.println("miss-match ID" + " real id: "
-                                                + hdr.getID() + " expected id: " + expectedID);
+        if(hdr.getID() != expectedID) System.out.println("miss-match ID" + " real id: " + hdr.getID() + " expected id: " + expectedID);
 
-        if(hdr.getEndpoint() != eEndpoint) System.out.println("miss-match endpoint" + " real end: "
-                                                + hdr.getEndpoint() + " expected end: " + eEndpoint);
-
-        //validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
-        //validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
+        if(hdr.getEndpoint() != eEndpoint) System.out.println("miss-match endpoint" + " real end: " + hdr.getEndpoint() + " expected end: " + eEndpoint);
 
         byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
-            Thread.sleep(10);
+            Thread.sleep(10); //Required, otherwise entire readBuffer is not read
             rx = con.readData(rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
@@ -140,7 +138,7 @@ public class proto {
     }
 
     /**
-     * Helper method for validating values.
+     * Helper method for validating that values are as expected/within a certain accepted range.
      */
     private void validate(int value, int min, int max, String errorMessage) throws Exception {
         if (value < min || value > max) throw new Exception(errorMessage);
@@ -182,4 +180,3 @@ public class proto {
         return rspGetUDI;
     }
 }
-

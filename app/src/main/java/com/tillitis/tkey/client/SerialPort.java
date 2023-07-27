@@ -14,10 +14,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-public class UsbComm {
+public class SerialPort {
     private Context context;
     private UsbSerialPort port;
-    public UsbComm(Context context) {
+    public SerialPort(Context context) {
         this.context = context;
     }
 
@@ -48,20 +48,30 @@ public class UsbComm {
     public void writeData(byte[] data) {
         if (port != null) {
             try {
-                port.write(data, 0);
+                port.write(data, 100);
             } catch (IOException e) {
                 System.out.println("Write error");
             }
         }
     }
 
+    public void writeData(byte[] data, int len) {
+        writeData(data);
+    }
+
+    public void disconnect() throws IOException {
+        port.setBreak(true);
+
+    }
+
     private byte[] bufferStorage = new byte[1];
 
+    //TODO: might overflow if bytes back is more than expected
     public byte[] readData(int bytes) {
         if(bytes == 1 && port != null){
             byte[] buffer = new byte[bytes+1];
             try {
-                port.read(buffer, 0);
+                port.read(buffer, 100);
                 bufferStorage[0] = buffer[1];
             } catch (IOException e) {
                 System.out.println("Read error");

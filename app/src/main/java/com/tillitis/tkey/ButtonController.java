@@ -74,9 +74,15 @@ public class ButtonController {
     }
 
     public void getPubKeyOnClick(final View v, final TK1sign signer){
+
         new Thread(() -> {
 
             try {
+                Thread.sleep(500);
+                String name = signer.getAppNameVersion();
+                textView.append("Name: " + name + "\n\n");
+                snapText();
+
                 String key = Arrays.toString(signer.getPubKey());
                 textView.append("KEY: " + key + "\n\n");
                 snapText();
