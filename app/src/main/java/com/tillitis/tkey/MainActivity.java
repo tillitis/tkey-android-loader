@@ -2,46 +2,44 @@
  * Copyright (C) 2022, 2023 - Tillitis AB
  * SPDX-License-Identifier: GPL-2.0-only
  */
-
 package com.tillitis.tkey;
+import android.content.*;
+import android.hardware.usb.*;
+import androidx.fragment.app.*;
+import com.tillitis.tkey.client.*;
+import com.tillitis.tkey.fragments.*;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.TextView;
+import android.widget.ScrollView;
+
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
-import com.tillitis.tkey.client.TkeyClient;
-import com.tillitis.tkey.client.SerialPort;
+import com.tillitis.tkey.controllers.CommonController;
 
 public class MainActivity extends AppCompatActivity {
     private static final String ACTION_USB_PERMISSION = "com.iknek.tkey.USB_PERMISSION";
-    private SerialPort serialPort;
+    private UsbComm usbComm;
     private TkeyClient tkeyClient;
     private UsbManager usbManager;
     private PendingIntent permissionIntent;
-    private ButtonController buttonController ;
-    private TextView textView;
+    private CommonController commonController;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        serialPort = new SerialPort(this);
+        usbComm = new UsbComm(this);
         tkeyClient = new TkeyClient();
-        tkeyClient.main(serialPort);
+        tkeyClient.main(usbComm);
+
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-        textView = findViewById(R.id.response_msg);
-        buttonController = new ButtonController(tkeyClient, textView);
+
+        commonController = new CommonController(findViewById(R.id.response_msg), findViewById(R.id.scroll), tkeyClient);
+
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
@@ -74,6 +72,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * USB Reciever for handling when a TKey is plugged in.
+     */
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -82,8 +83,8 @@ public class MainActivity extends AppCompatActivity {
                     UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if(device != null){
-                            serialPort.connectDevice();
-                            ButtonController.setConnectionStatus(false);
+                            usbComm.connectDevice();
+                            commonController.setConnected(false);
                         }
                     } else {
                         System.out.println("Permission denied for device " + device);
@@ -93,12 +94,12 @@ public class MainActivity extends AppCompatActivity {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null && !usbManager.hasPermission(device)) {
                     usbManager.requestPermission(device, permissionIntent);
-                    buttonController.setConnectionStatus(false);
+                    commonController.setConnected(false);
                 }
             } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null) {
-                    buttonController.setConnectionStatus(false);
+                    commonController.setConnected(false);
                     View view = getWindow().getDecorView().findViewById(android.R.id.content);
                     Snackbar.make(view, "TKey disconnected!", Snackbar.LENGTH_LONG).setAction("Action", null).show();
                 }
@@ -106,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    TkeyClient getClient(){
+    public TkeyClient getClient(){
         return tkeyClient;
     }
 
@@ -114,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
         usbManager.requestPermission(device, permissionIntent);
     }
 
-    public ButtonController getButtonController() {
-        return buttonController;
+    public CommonController getCommonController() {
+        return commonController;
     }
 }

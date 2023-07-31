@@ -2,12 +2,11 @@
  * Copyright (C) 2022, 2023 - Tillitis AB
  * SPDX-License-Identifier: GPL-2.0-only
  */
-
-package com.tillitis.tkey;
+package com.tillitis.tkey.fragments;
+import com.tillitis.tkey.*;
+import com.tillitis.tkey.controllers.*;
+import android.view.*;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import androidx.fragment.app.Fragment;
 import com.tillitis.tkey.client.TkeyClient;
@@ -15,11 +14,10 @@ import com.tillitis.tkey.client.signer.TK1sign;
 
 public class SignerFragment extends Fragment {
     private MainActivity mainActivity;
-    private ButtonController buttonController;
-    private TkeyClient tk;
-    private TK1sign signer;
+    private CommonController cc;
+    private SignerController sc;
+    private final TK1sign signer;
     public SignerFragment(TkeyClient client) {
-        tk = client;
         signer = new TK1sign(client);
     }
 
@@ -28,9 +26,9 @@ public class SignerFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_tkey_signer, container, false);
         mainActivity = (MainActivity) getActivity();
 
-        tk = mainActivity.getClient();
+        cc = mainActivity.getCommonController();
+        sc = new SignerController(cc);
 
-        buttonController = mainActivity.getButtonController();
         initializeButtons(view);
         return view;
     }
@@ -48,11 +46,11 @@ public class SignerFragment extends Fragment {
     private void initializeButtons(View view) {
         Button connectButton = view.findViewById(R.id.connect);
         Button loadApp = view.findViewById(R.id.loadApp);
-        Button getpubkey = view.findViewById(R.id.getpubkey);
+        Button getPubKey = view.findViewById(R.id.getpubkey);
 
-        connectButton.setOnClickListener(buttonController::connectButtonOnClick);
-        getpubkey.setOnClickListener(v -> buttonController.getPubKeyOnClick(v,signer));
-        loadApp.setOnClickListener(v -> buttonController.loadAppOnClick(v,tk, getFileBytes()));
+        connectButton.setOnClickListener(cc :: connectButtonOnClick);
+        getPubKey.setOnClickListener(v -> sc.getPubKeyOnClick(v,signer));
+        loadApp.setOnClickListener(v -> cc.loadAppOnClick(v, getFileBytes()));
     }
 }
 

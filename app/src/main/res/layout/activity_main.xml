@@ -21,26 +21,34 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <TextView
-        android:id="@+id/response_msg"
+    <ScrollView
         android:layout_width="313dp"
+        android:id="@+id/scroll"
         android:layout_height="281dp"
-        android:paddingLeft="10dp"
-        android:paddingRight="12dp"
-        android:paddingBottom="4dp"
-        android:paddingTop="4dp"
-        android:background="@drawable/rounded_corners"
-
-        android:scrollbars="vertical"
-        android:scrollbarStyle="insideInset"
-        android:fadeScrollbars="false"
-
-
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.8" />
+        app:layout_constraintVertical_bias="0.8"
+        android:fillViewport="true">
+
+        <TextView
+            android:id="@+id/response_msg"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingBottom="4dp"
+            android:paddingTop="4dp"
+            android:background="@drawable/rounded_corners"
+            android:scrollbars="vertical"
+            android:scrollbarStyle="insideInset"
+            android:fadeScrollbars="false"
+            android:layout_gravity="bottom"
+            />
+
+    </ScrollView>
+
 
     <FrameLayout
         android:id="@+id/fragment_container"

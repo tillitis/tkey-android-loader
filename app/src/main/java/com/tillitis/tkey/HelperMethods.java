@@ -2,16 +2,13 @@
  * Copyright (C) 2022, 2023 - Tillitis AB
  * SPDX-License-Identifier: GPL-2.0-only
  */
-
 package com.tillitis.tkey;
 import android.content.Context;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 public class HelperMethods {
 
-    static byte[] readBytes(InputStream inputStream) throws IOException {
+    public static byte[] readBytes(InputStream inputStream) throws IOException {
         ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
         int bufferSize = 1024;
         byte[] buffer = new byte[bufferSize];
@@ -23,7 +20,7 @@ public class HelperMethods {
         return byteBuffer.toByteArray();
     }
 
-    static byte[] readBytesFromAssets(Context context, String fileName) throws IOException {
+    public static byte[] readBytesFromAssets(Context context, String fileName) throws IOException {
         InputStream inputStream = context.getAssets().open(fileName);
         return readBytes(inputStream);
     }

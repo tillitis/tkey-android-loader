@@ -2,38 +2,37 @@
  * Copyright (C) 2022, 2023 - Tillitis AB
  * SPDX-License-Identifier: GPL-2.0-only
  */
+package com.tillitis.tkey.fragments;
 
-package com.tillitis.tkey;
-
+import android.view.*;
+import com.tillitis.tkey.*;
+import com.tillitis.tkey.controllers.*;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.Fragment;
-import com.tillitis.tkey.client.TkeyClient;
+
 import java.io.InputStream;
 
 public class ToolsFragment extends Fragment {
     private MainActivity mainActivity;
-    private ButtonController buttonController;
+    private CommonController cc;
+    private ToolsController tc;
     private byte[] fileBytes;
     private ActivityResultLauncher<Intent> resultLauncher;
-    private TkeyClient tk;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_tkey_tools, container, false);
         mainActivity = (MainActivity) getActivity();
 
-        tk = mainActivity.getClient();
+        cc = mainActivity.getCommonController();
+        tc = new ToolsController(cc);
 
-        buttonController = mainActivity.getButtonController();
         initializeButtons(view);
 
         resultLauncher = registerForActivityResult(
@@ -52,7 +51,6 @@ public class ToolsFragment extends Fragment {
                         }
                     }
                 });
-
         return view;
     }
 
@@ -63,10 +61,10 @@ public class ToolsFragment extends Fragment {
         Button btnOpenFile = view.findViewById(R.id.btnOpenFile);
         Button loadApp = view.findViewById(R.id.loadApp);
 
-        connectButton.setOnClickListener(buttonController::connectButtonOnClick);
-        getNameButton.setOnClickListener(buttonController::getNameButtonOnClick);
-        getUDI.setOnClickListener(buttonController::getUDIButtonOnClick);
-        loadApp.setOnClickListener(v -> buttonController.loadAppOnClick(v,tk, fileBytes));
-        btnOpenFile.setOnClickListener(v -> buttonController.openFileButtonOnClick(resultLauncher));
+        connectButton.setOnClickListener(cc::connectButtonOnClick);
+        getNameButton.setOnClickListener(tc::getTKNameOnClick);
+        getUDI.setOnClickListener(tc::getUDIButtonOnClick);
+        loadApp.setOnClickListener(v -> cc.loadAppOnClick(v, fileBytes));
+        btnOpenFile.setOnClickListener(v -> tc.openFileButtonOnClick(resultLauncher));
     }
 }
