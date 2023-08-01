@@ -27,23 +27,21 @@ public class CommonController {
     public void appendText(String text){
         textView.append(text + "\n");
         sc.scrollTo(0,sc.getBottom());
-        sc.fullScroll(View.FOCUS_DOWN);
+        //sc.fullScroll(View.FOCUS_DOWN);
     }
 
     public void loadAppOnClick(View v, byte[] app){
         if(!appIsLoaded){
-            new Thread(() -> {
-                try{
-                    appendText("Loading app... \n");
-                    tk.LoadApp(app);
-                    appendText("App Loaded \n");
-                    appIsLoaded = true;
-                }catch (Exception e){
-                    String rsp = "Failed to load";
-
-                    Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show();
-                }
-            }).start();
+            textView.append("Loading app... \n ");
+            try{
+                Thread.sleep(50);
+                tk.LoadApp(app);
+                appendText("App Loaded \n");
+                appIsLoaded = true;
+            }catch (Exception e){
+                String rsp = "Failed to load";
+                Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            }
         }
         else{
             Snackbar.make(v, "App Already Loaded", Snackbar.LENGTH_LONG).setAction("Action", null).show();
@@ -60,7 +58,6 @@ public class CommonController {
         }
         Snackbar.make(v, name, Snackbar.LENGTH_LONG).setAction("Action", null).show();
     }
-
 
     String connectDevice() {
         try {
@@ -93,6 +90,10 @@ public class CommonController {
 
     public boolean appIsLoaded() {
         return appIsLoaded;
+    }
+
+    public void setLoaded(Boolean bool){
+        appIsLoaded = bool;
     }
 
     TkeyClient getTkeyClient() {

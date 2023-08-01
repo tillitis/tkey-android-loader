@@ -3,15 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-only
  */
 
-package com.tillitis.tkey.client.signer;
+package com.tillitis.tkey.client;
 
 import static com.tillitis.tkey.client.CmdLen.*;
+import com.tillitis.tkey.client.*;
+import org.bouncycastle.crypto.params.*;
 import static com.tillitis.tkey.client.TkeyClient.unpackName;
-import com.tillitis.tkey.client.FwCmd;
-import com.tillitis.tkey.client.TkeyClient;
 import java.util.Arrays;
-import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
-import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 
 public class TK1sign {
@@ -34,7 +32,7 @@ public class TK1sign {
         tk1 = client;
     }
 
-    public static String bytesToHex(byte[] bytes) {
+    public String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02x", b));
@@ -45,7 +43,7 @@ public class TK1sign {
     /**
      * GetAppNameVersion gets the name and version of the running app in the same style as the stick itself.
      */
-    public static String getAppNameVersion() throws Exception {
+    public String getAppNameVersion() throws Exception {
         tk1.clearIO();
         Thread.sleep(200);
         byte[] data = tk1.getData(cmdGetNameVersion,rspGetNameVersion);
@@ -55,9 +53,9 @@ public class TK1sign {
     /**
      * GetPubkey fetches the public key of the signer.
      */
-    public static byte[] getPubKey() throws Exception {
-        tk1.clearIO();
+    public byte[] getPubKey() throws Exception {
         Thread.sleep(200);
+        tk1.clearIO();
         byte[] data = tk1.getData(cmdGetPubkey,rspGetPubkey);
         return Arrays.copyOfRange(data,1,33);
     }
@@ -65,7 +63,7 @@ public class TK1sign {
     /**
      * getSig gets the ed25519 signature from the signer app, if available.
      */
-    public static byte[] getSig() throws Exception {
+    public byte[] getSig() throws Exception {
         byte[] data = tk1.getData(cmdGetSig,rspGetSig);
         if(data[1] != statusOK){
             System.out.println("Status not ok");
@@ -76,7 +74,7 @@ public class TK1sign {
     /**
      * Sign signs the message in data and returns an ed25519 signature.
      */
-    public static byte[] sign(byte[] in) throws Exception {
+    public byte[] sign(byte[] in) throws Exception {
         Thread.sleep(200);
         tk1.clearIO();
 
@@ -99,7 +97,7 @@ public class TK1sign {
         return sig;
     }
 
-    public static boolean verify(byte[] publicKey, byte[] message, byte[] signature) {
+    public boolean verify(byte[] publicKey, byte[] message, byte[] signature) {
         AsymmetricKeyParameter pkParam = new Ed25519PublicKeyParameters(publicKey, 0);
         Ed25519Signer signer = new Ed25519Signer();
         signer.init(false, pkParam);
@@ -110,7 +108,7 @@ public class TK1sign {
     /**
      * SetSize sets the size of the data to sign.
      */
-    public static void setSize(int size) throws Exception {
+    public void setSize(int size) throws Exception {
         byte[] tx = tk1.newFrameBuf(cmdSetSize,2);
         tx[2] = (byte) size;
         tx[3] = (byte) (size >> 8);
@@ -127,7 +125,7 @@ public class TK1sign {
     /**
      * signload loads a chunk of a message to sign and waits for a response from the signer.
      */
-    private static int signLoad(byte[] content) throws Exception {
+    private int signLoad(byte[] content) throws Exception {
         byte[] tx = tk1.newFrameBuf(cmdSignData,2);
 
         byte[] payload = new byte[cmdSignData.getCmdLen().getBytelen()-1];
@@ -158,7 +156,7 @@ public class TK1sign {
     /**
      * SignPh signs a SHA512 pre-hashed message in data and returns an ed25519ph signature.
      */
-    public static byte[] signPh(byte[] data) throws Exception {
+    public byte[] signPh(byte[] data) throws Exception {
         Thread.sleep(200);
         tk1.clearIO();
 

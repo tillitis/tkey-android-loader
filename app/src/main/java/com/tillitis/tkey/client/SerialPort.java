@@ -3,16 +3,12 @@
  * SPDX-License-Identifier: GPL-2.0-only
  */
 package com.tillitis.tkey.client;
+import android.hardware.usb.*;
+import com.hoho.android.usbserial.driver.*;
+import java.util.*;
+import com.tillitis.tkey.*;
 import android.content.Context;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbManager;
-import com.tillitis.tkey.MainActivity;
-import com.hoho.android.usbserial.driver.UsbSerialDriver;
-import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 public class SerialPort {
     private Context context;
@@ -82,7 +78,7 @@ public class SerialPort {
             byte[] buffer = new byte[bytes];
             byte savedbyte = bufferStorage[0];
             try {
-                port.read(buffer, 0);
+                port.read(buffer, 100);
                 bufferStorage[0] = buffer[bytes-1];
             } catch (IOException e) {
                 System.out.println("Read error");

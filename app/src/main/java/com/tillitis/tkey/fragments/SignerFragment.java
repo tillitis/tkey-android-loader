@@ -10,7 +10,7 @@ import android.os.Bundle;
 import android.widget.Button;
 import androidx.fragment.app.Fragment;
 import com.tillitis.tkey.client.TkeyClient;
-import com.tillitis.tkey.client.signer.TK1sign;
+import com.tillitis.tkey.client.TK1sign;
 
 public class SignerFragment extends Fragment {
     private MainActivity mainActivity;
@@ -19,6 +19,7 @@ public class SignerFragment extends Fragment {
     private final TK1sign signer;
     public SignerFragment(TkeyClient client) {
         signer = new TK1sign(client);
+
     }
 
     @Override
@@ -28,7 +29,6 @@ public class SignerFragment extends Fragment {
 
         cc = mainActivity.getCommonController();
         sc = new SignerController(cc);
-
         initializeButtons(view);
         return view;
     }

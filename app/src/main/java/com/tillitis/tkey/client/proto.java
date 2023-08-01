@@ -2,7 +2,6 @@
  * Copyright (C) 2022, 2023 - Tillitis AB
  * SPDX-License-Identifier: GPL-2.0-only
  */
-
 package com.tillitis.tkey.client;
 import static com.tillitis.tkey.client.CmdLen.*;
 
@@ -98,10 +97,9 @@ public class proto {
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
         validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        byte[] rxHdr = new byte[1];
+        byte[] rxHdr;
         try{
             rxHdr = con.readData(1);
-
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }

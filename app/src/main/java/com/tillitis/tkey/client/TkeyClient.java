@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-only
  */
 package com.tillitis.tkey.client;
-
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.nio.*;
 import java.util.Arrays;
 import org.bouncycastle.crypto.digests.Blake2sDigest;
 
@@ -100,7 +98,7 @@ public class TkeyClient {
             throw new Exception(e);
         }
 
-        byte[] rx = proto.readFrame(proto.getRspLoadApp(),2,connHandler);
+        byte[] rx = proto.readFrame(proto.getRspLoadApp(),ID,connHandler);
         if(rx[2] != 0){
             System.out.println("LoadApp Not OK");
         }
@@ -206,8 +204,8 @@ public class TkeyClient {
     public byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = proto.newFrameBuf(command, ID);
         connHandler.writeData(tx_byte);
-        Thread.sleep(500);
-        return proto.readFrame(response, 2, connHandler);
+        Thread.sleep(10);
+        return proto.readFrame(response, ID, connHandler);
     }
 
     public void write(byte[] tx){
@@ -222,14 +220,6 @@ public class TkeyClient {
         return proto.readFrame(cmd, id,connHandler);
     }
 
-    public void dump(String s, byte[] tx) throws Exception {
-        proto.dump(s,tx);
-    }
-
-    public void disconnect() throws IOException {
-        connHandler.disconnect();
-    }
-
     public void connect(){
         connHandler.connectDevice();
     }
@@ -241,5 +231,4 @@ public class TkeyClient {
     public void clearIO() throws IOException {
         connHandler.clear();
     }
-
 }

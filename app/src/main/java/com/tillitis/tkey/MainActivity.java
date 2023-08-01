@@ -20,7 +20,7 @@ import com.tillitis.tkey.controllers.CommonController;
 
 public class MainActivity extends AppCompatActivity {
     private static final String ACTION_USB_PERMISSION = "com.iknek.tkey.USB_PERMISSION";
-    private UsbComm usbComm;
+    private SerialPort usbComm;
     private TkeyClient tkeyClient;
     private UsbManager usbManager;
     private PendingIntent permissionIntent;
@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        usbComm = new UsbComm(this);
+        usbComm = new SerialPort(this);
         tkeyClient = new TkeyClient();
         tkeyClient.main(usbComm);
 
@@ -56,18 +56,16 @@ public class MainActivity extends AppCompatActivity {
             Fragment selectedFragment = null;
 
             int itemId = item.getItemId();
-            if (itemId == R.id.action_tkey_tools) {
+
+            if (itemId == R.id.action_tkey_tools)
                 selectedFragment = new ToolsFragment();
-            } else if (itemId == R.id.action_signer) {
+             else if (itemId == R.id.action_signer)
                 selectedFragment = new SignerFragment(tkeyClient);
-            } else if (itemId == R.id.action_verify) {
+             else if (itemId == R.id.action_verify)
                 selectedFragment = new VerifyFragment();
-            }
 
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, selectedFragment)
-                    .commit();
-
+                    .replace(R.id.fragment_container, selectedFragment).commit();
             return true;
         });
     }
@@ -84,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if(device != null){
                             usbComm.connectDevice();
-                            commonController.setConnected(false);
+                            commonController.setConnected(true);
                         }
                     } else {
                         System.out.println("Permission denied for device " + device);
@@ -98,8 +96,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                commonController.setConnected(false);
+                commonController.setLoaded(false);
                 if (device != null) {
-                    commonController.setConnected(false);
                     View view = getWindow().getDecorView().findViewById(android.R.id.content);
                     Snackbar.make(view, "TKey disconnected!", Snackbar.LENGTH_LONG).setAction("Action", null).show();
                 }
