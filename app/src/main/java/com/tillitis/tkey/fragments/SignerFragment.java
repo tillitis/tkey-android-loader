@@ -17,9 +17,12 @@ public class SignerFragment extends Fragment {
     private CommonController cc;
     private SignerController sc;
     private final TK1sign signer;
+    private ActivityResHandler resultHandler;
+
+    private byte[] fileBytes;
+
     public SignerFragment(TkeyClient client) {
         signer = new TK1sign(client);
-
     }
 
     @Override
@@ -30,10 +33,15 @@ public class SignerFragment extends Fragment {
         cc = mainActivity.getCommonController();
         sc = new SignerController(cc);
         initializeButtons(view);
+
+        resultHandler = new ActivityResHandler(this, fileBytes -> {
+            this.fileBytes = fileBytes;
+        });
+
         return view;
     }
 
-    private byte[] getFileBytes(){
+    private byte[] readFileBytes(){
         byte[] app = null;
         try{
             app = HelperMethods.readBytesFromAssets(mainActivity.getApplicationContext(),"signer.bin");
@@ -43,14 +51,30 @@ public class SignerFragment extends Fragment {
         return app;
     }
 
+    public byte[] getFileBytes(){
+        return fileBytes;
+    }
+
     private void initializeButtons(View view) {
         Button connectButton = view.findViewById(R.id.connect);
         Button loadApp = view.findViewById(R.id.loadApp);
         Button getPubKey = view.findViewById(R.id.getpubkey);
+        Button signFile = view.findViewById(R.id.signFile);
+        Button getFile = view.findViewById(R.id.getFile);
 
         connectButton.setOnClickListener(cc :: connectButtonOnClick);
         getPubKey.setOnClickListener(v -> sc.getPubKeyOnClick(v,signer));
-        loadApp.setOnClickListener(v -> cc.loadAppOnClick(v, getFileBytes()));
+        loadApp.setOnClickListener(v -> sc.loadApp(v, readFileBytes(),signer));
+
+        getFile.setOnClickListener(v -> cc.openFileButtonOnClick(resultHandler.getResultLauncher()));
+
+        signFile.setOnClickListener(v -> {
+            try {
+                sc.signFile(signer,fileBytes);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }
 

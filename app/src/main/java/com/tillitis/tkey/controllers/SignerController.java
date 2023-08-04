@@ -5,7 +5,9 @@
 package com.tillitis.tkey.controllers;
 import android.view.View;
 import com.google.android.material.snackbar.Snackbar;
+import com.tillitis.tkey.ActivityResHandler;
 import com.tillitis.tkey.client.TK1sign;
+import com.tillitis.tkey.fragments.SignerFragment;
 
 import java.util.Arrays;
 
@@ -52,6 +54,17 @@ public class SignerController {
         }
     }
 
+    public void loadApp(View v, byte[] data, TK1sign signer) {
+        cc.loadAppOnClick(v,data);
+        try{
+            appName = signer.getAppNameVersion();
+            cc.appendText("App Name: " + appName + "\n");
+
+        }catch (Exception e){
+            System.out.println("oops");
+        }
+    }
+
     public void getNameOnClick(View v, TK1sign signer) {
         String rsp;
         try {
@@ -64,5 +77,15 @@ public class SignerController {
         }
         Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show();
     }
+
+    public void signFile(TK1sign signer, byte[] data) throws Exception {
+        if(data.length > 4096){
+            cc.appendText("File too large to sign! \n");
+            throw new Exception("too large");
+        }
+        byte[] sig = signer.sign(data);
+        cc.appendText("Signature over message by TKey (on stdout): " + " \n" + signer.bytesToHex(sig) +  " \n");
+    }
+
 
 }

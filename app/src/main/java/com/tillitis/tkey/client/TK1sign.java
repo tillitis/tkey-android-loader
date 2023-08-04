@@ -64,6 +64,7 @@ public class TK1sign {
      * getSig gets the ed25519 signature from the signer app, if available.
      */
     public byte[] getSig() throws Exception {
+
         byte[] data = tk1.getData(cmdGetSig,rspGetSig);
         if(data[1] != statusOK){
             System.out.println("Status not ok");
@@ -75,8 +76,6 @@ public class TK1sign {
      * Sign signs the message in data and returns an ed25519 signature.
      */
     public byte[] sign(byte[] in) throws Exception {
-        Thread.sleep(200);
-        tk1.clearIO();
 
         setSize(in.length);
         int offset = 0;
@@ -85,15 +84,18 @@ public class TK1sign {
         }
         if(offset > in.length) throw new Exception("Transmitted more than expected");
 
-        Thread.sleep(100);
+        byte[] pubkey = getPubKey();
+
         tk1.clearIO();
+        Thread.sleep(5000);
+
         byte[] sig = getSig();
-        Thread.sleep(100);
-        tk1.clearIO();
-        if(!verify(getPubKey(),in,sig)){
+
+        Arrays.copyOfRange(sig,5,sig.length);
+
+        if(!verify(pubkey,in,sig)){
             throw new Exception("Verification Failed!");
         }
-
         return sig;
     }
 

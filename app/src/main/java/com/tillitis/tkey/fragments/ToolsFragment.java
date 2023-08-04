@@ -22,8 +22,8 @@ public class ToolsFragment extends Fragment {
     private MainActivity mainActivity;
     private CommonController cc;
     private ToolsController tc;
+    private ActivityResHandler resultHandler;
     private byte[] fileBytes;
-    private ActivityResultLauncher<Intent> resultLauncher;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -35,22 +35,10 @@ public class ToolsFragment extends Fragment {
 
         initializeButtons(view);
 
-        resultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        Intent data = result.getData();
-                        if (data != null) {
-                            Uri uri = data.getData();
-                            try {
-                                InputStream inputStream = mainActivity.getContentResolver().openInputStream(uri);
-                                fileBytes = HelperMethods.readBytes(inputStream);
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }
-                });
+        resultHandler = new ActivityResHandler(this, fileBytes -> {
+            this.fileBytes = fileBytes;
+        });
+
         return view;
     }
 
@@ -65,6 +53,6 @@ public class ToolsFragment extends Fragment {
         getNameButton.setOnClickListener(tc::getTKNameOnClick);
         getUDI.setOnClickListener(tc::getUDIButtonOnClick);
         loadApp.setOnClickListener(v -> cc.loadAppOnClick(v, fileBytes));
-        btnOpenFile.setOnClickListener(v -> tc.openFileButtonOnClick(resultLauncher));
+        btnOpenFile.setOnClickListener(v -> cc.openFileButtonOnClick(resultHandler.getResultLauncher()));
     }
 }

@@ -3,10 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-only
  */
 package com.tillitis.tkey.controllers;
+import android.content.Intent;
 import android.text.method.ScrollingMovementMethod;
 import android.view.*;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import androidx.activity.result.ActivityResultLauncher;
+
 import com.google.android.material.snackbar.Snackbar;
 import com.tillitis.tkey.client.TkeyClient;
 
@@ -57,6 +61,13 @@ public class CommonController {
             appendText(name + "\n");
         }
         Snackbar.make(v, name, Snackbar.LENGTH_LONG).setAction("Action", null).show();
+    }
+
+    public void openFileButtonOnClick(ActivityResultLauncher resultLauncher){
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        resultLauncher.launch(intent);
+        appendText("Got File" + "\n");
     }
 
     String connectDevice() {

@@ -67,7 +67,7 @@ public class SerialPort {
         if(bytes == 1 && port != null){
             byte[] buffer = new byte[bytes+1];
             try {
-                port.read(buffer, 100);
+                port.read(buffer, 50);
                 bufferStorage[0] = buffer[1];
             } catch (IOException e) {
                 System.out.println("Read error");
@@ -78,7 +78,7 @@ public class SerialPort {
             byte[] buffer = new byte[bytes];
             byte savedbyte = bufferStorage[0];
             try {
-                port.read(buffer, 100);
+                port.read(buffer, 0);
                 bufferStorage[0] = buffer[bytes-1];
             } catch (IOException e) {
                 System.out.println("Read error");

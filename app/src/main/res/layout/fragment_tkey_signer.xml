@@ -43,13 +43,24 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/getName"
+        android:id="@+id/signFile"
         android:layout_width="120dp"
         android:layout_height="60dp"
         android:layout_marginTop="180dp"
-        android:text="Get Name"
+        android:text="Sign File"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.78"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/getFile"
+        android:layout_width="120dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="256dp"
+        android:text="Get File To Sign"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.247"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

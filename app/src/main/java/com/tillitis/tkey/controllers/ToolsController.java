@@ -18,12 +18,6 @@ public class ToolsController {
         tk = cc.getTkeyClient();
     }
 
-    public void openFileButtonOnClick(ActivityResultLauncher resultLauncher){
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
-        resultLauncher.launch(intent);
-    }
-
     public void getTKNameOnClick(View v) {
         String rsp;
         try {
