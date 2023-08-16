@@ -13,13 +13,15 @@ import java.util.Arrays;
 
 public class SignerController {
     private CommonController cc;
-
     private String appName = "";
-
     private String pubKey = "";
+    private TK1sign signer;
+    private View v;
 
-    public SignerController(CommonController commonController) {
+    public SignerController(CommonController commonController, TK1sign signer,View view) {
+        this.signer = signer;
         this.cc = commonController;
+        this.v = view;
     }
 
     /**
@@ -27,7 +29,7 @@ public class SignerController {
      * users have no way of knowing, and it can only be re-done by reloading the client app.
      * Needed to get pub key though...
      */
-    public void getPubKeyOnClick(final View v, final TK1sign signer){
+    public void getPubKeyOnClick(){
         if(appName.equals("")){
             try{
                 appName = signer.getAppNameVersion();
@@ -54,7 +56,7 @@ public class SignerController {
         }
     }
 
-    public void loadApp(View v, byte[] data, TK1sign signer) {
+    public void loadApp(byte[] data) {
         cc.loadAppOnClick(v,data);
         try{
             appName = signer.getAppNameVersion();
@@ -65,7 +67,7 @@ public class SignerController {
         }
     }
 
-    public void getNameOnClick(View v, TK1sign signer) {
+    public void getNameOnClick() {
         String rsp;
         try {
             String name = signer.getAppNameVersion();
@@ -78,7 +80,7 @@ public class SignerController {
         Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show();
     }
 
-    public void signFile(TK1sign signer, byte[] data) throws Exception {
+    public void signFile(byte[] data) throws Exception {
         if(data.length > 4096){
             cc.appendText("File too large to sign! \n");
             throw new Exception("too large");

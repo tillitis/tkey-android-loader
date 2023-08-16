@@ -31,12 +31,10 @@ public class SignerFragment extends Fragment {
         mainActivity = (MainActivity) getActivity();
 
         cc = mainActivity.getCommonController();
-        sc = new SignerController(cc);
+        sc = new SignerController(cc, signer, view);
         initializeButtons(view);
 
-        resultHandler = new ActivityResHandler(this, fileBytes -> {
-            this.fileBytes = fileBytes;
-        });
+        resultHandler = new ActivityResHandler(this, fileBytes -> this.fileBytes = fileBytes);
 
         return view;
     }
@@ -63,14 +61,14 @@ public class SignerFragment extends Fragment {
         Button getFile = view.findViewById(R.id.getFile);
 
         connectButton.setOnClickListener(cc :: connectButtonOnClick);
-        getPubKey.setOnClickListener(v -> sc.getPubKeyOnClick(v,signer));
-        loadApp.setOnClickListener(v -> sc.loadApp(v, readFileBytes(),signer));
+        getPubKey.setOnClickListener(v -> sc.getPubKeyOnClick());
+        loadApp.setOnClickListener(v -> sc.loadApp(readFileBytes()));
 
         getFile.setOnClickListener(v -> cc.openFileButtonOnClick(resultHandler.getResultLauncher()));
 
         signFile.setOnClickListener(v -> {
             try {
-                sc.signFile(signer,fileBytes);
+                sc.signFile(fileBytes);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

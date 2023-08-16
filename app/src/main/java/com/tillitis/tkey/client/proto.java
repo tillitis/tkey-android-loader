@@ -73,9 +73,9 @@ public class proto {
     /**
      * Writes an array to the TKey, using the specified SerialPort.
      */
-    protected void write(byte[] d, SerialPort con) throws Exception {
+    protected void write(byte[] d, UsbService con) throws Exception {
         try{
-            con.writeData(d, d.length);
+            con.writeData(d);
         }catch(Exception e){
             throw new Exception("Couldn't write" + e);
         }
@@ -91,13 +91,13 @@ public class proto {
      * expectedResp. It returns the whole frame read, and the parsed header
      * byte if successful.
      */
-    protected byte[] readFrame(FwCmd expectedResp, int expectedID, SerialPort con) throws Exception {
+    protected byte[] readFrame(FwCmd expectedResp, int expectedID, UsbService con) throws Exception {
         byte eEndpoint = expectedResp.getEndpoint();
         validate(expectedID, 0, 3, "Frame ID needs to be between 1..3");
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
         validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        byte[] rxHdr;
+        byte[] rxHdr = null;
         try{
             rxHdr = con.readData(1);
         }catch(Exception e){

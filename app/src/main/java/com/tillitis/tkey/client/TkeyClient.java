@@ -10,10 +10,10 @@ import org.bouncycastle.crypto.digests.Blake2sDigest;
 
 public class TkeyClient {
     private static final proto proto = new proto();
-    private SerialPort connHandler;
+    private UsbService connHandler;
     private static final int ID = 2;
 
-    public void main(SerialPort com){
+    public void main(UsbService com){
         connHandler = com;
     }
 
@@ -225,10 +225,10 @@ public class TkeyClient {
     }
 
     public boolean isConnected(){
-        return connHandler.isConnected();
+        return true;
     }
 
     public void clearIO() throws IOException {
-        connHandler.clear();
+        //
     }
 }

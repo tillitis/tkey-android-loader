@@ -10,40 +10,46 @@ import com.tillitis.tkey.client.*;
 import com.tillitis.tkey.fragments.*;
 import android.app.PendingIntent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
 import android.view.View;
 import android.widget.ScrollView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.tillitis.tkey.controllers.CommonController;
 
+import java.lang.ref.WeakReference;
+import java.util.Set;
+
 public class MainActivity extends AppCompatActivity {
     private static final String ACTION_USB_PERMISSION = "com.iknek.tkey.USB_PERMISSION";
-    private SerialPort usbComm;
     private TkeyClient tkeyClient;
-    private UsbManager usbManager;
-    private PendingIntent permissionIntent;
     private CommonController commonController;
+    private UsbService usbService;
+    private PendingIntent permissionIntent;
+    private UsbManager usbManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        usbComm = new SerialPort(this);
+        usbService = new UsbService(this);
         tkeyClient = new TkeyClient();
-        tkeyClient.main(usbComm);
+        tkeyClient.main(usbService);
 
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
 
         commonController = new CommonController(findViewById(R.id.response_msg), findViewById(R.id.scroll), tkeyClient);
-
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(usbReceiver, filter);
+
         setupFragments();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, new ToolsFragment());
@@ -56,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
             Fragment selectedFragment = null;
 
             int itemId = item.getItemId();
-
             if (itemId == R.id.action_tkey_tools)
                 selectedFragment = new ToolsFragment();
              else if (itemId == R.id.action_signer)
@@ -81,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                     UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if(device != null){
-                            usbComm.connectDevice();
+                            usbService.connectDevice();
                             commonController.setConnected(true);
                         }
                     } else {
@@ -118,3 +123,5 @@ public class MainActivity extends AppCompatActivity {
         return commonController;
     }
 }
+
+
