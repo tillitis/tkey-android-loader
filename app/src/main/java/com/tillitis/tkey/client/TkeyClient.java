@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-only
  */
 package com.tillitis.tkey.client;
+import com.fazecast.jSerialComm.SerialPort;
+
+import java.io.File;
 import java.io.IOException;
 import java.nio.*;
 import java.util.Arrays;
@@ -10,22 +13,32 @@ import org.bouncycastle.crypto.digests.Blake2sDigest;
 
 public class TkeyClient {
     private static final proto proto = new proto();
-    private SerialPort connHandler;
+    private static SerialConnHandler connHandler;
+    private static SerialPort port;
     private static final int ID = 2;
 
-    public void main(SerialPort com){
-        connHandler = com;
+    public void main() throws Exception {
+        connect();
     }
 
-    public void LoadApp(byte[] bin) throws Exception {
+    public static void loadAppFromFile(String fileName) throws Exception {
+        LoadApp(readFile(fileName));
+    }
+
+    public static void loadAppFromFile(String fileName, byte[] uss) throws Exception {
+        LoadApp(readFile(fileName),uss);
+    }
+
+    public static void LoadApp(byte[] bin) throws Exception {
         LoadApp(bin,new byte[0]);
     }
 
-    private void LoadApp(byte[] bin, byte[] uss) throws Exception {
+    private static void LoadApp(byte[] bin, byte[] uss) throws Exception {
         int binLen = bin.length;
         if (binLen > 102400) throw new Exception("File too big");
 
         loadApp(binLen, uss);
+
         int offset = 0;
         byte[] deviceDigest = new byte[32];
 
@@ -52,7 +65,7 @@ public class TkeyClient {
         System.out.println("Device Digest: " + Arrays.toString(bytesToUnsignedBytes(deviceDigest)));
 
         if (!Arrays.equals(digest, deviceDigest)) {
-            System.out.println("Different digests!");
+            throw new Exception("Different digests");
         }
         else{
             System.out.println("Same digests!");
@@ -70,11 +83,7 @@ public class TkeyClient {
     /**
      * loadApp() sets the size and USS of the app to be loaded into the TKey.
      */
-    public byte[] newFrameBuf(FwCmd cmd, int ID) throws Exception {
-        return proto.newFrameBuf(cmd,ID);
-    }
-
-    private void loadApp(int size, byte[] secretPhrase) throws Exception {
+    private static void loadApp(int size, byte[] secretPhrase) throws Exception {
         byte[] tx = proto.newFrameBuf(proto.getCmdLoadApp(),ID);
         tx[2] = (byte) size;
         tx[3] = (byte) (size >> 8);
@@ -93,12 +102,11 @@ public class TkeyClient {
             throw new Exception(e);
         }
         try{
-            connHandler.writeData(tx);
+            proto.write(tx, port);
         }catch(Exception e){
             throw new Exception(e);
         }
-
-        byte[] rx = proto.readFrame(proto.getRspLoadApp(),ID,connHandler);
+        byte[] rx = proto.readFrame(proto.getRspLoadApp(),2,port);
         if(rx[2] != 0){
             System.out.println("LoadApp Not OK");
         }
@@ -107,7 +115,7 @@ public class TkeyClient {
     /**
      * loadAppData() loads a chunk of the raw app binary into the TKey.
      */
-    private Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
+    private static Tuple loadAppData(byte[] contentByte, boolean last) throws Exception {
         byte[] tx = proto.newFrameBuf(proto.getCmdLoadAppData(), ID);
 
         byte[] payload = new byte[proto.getCmdLoadAppData().getCmdLen().getBytelen()-1];
@@ -124,15 +132,14 @@ public class TkeyClient {
         }catch (Exception e){
             throw new Exception(e);
         }
-        connHandler.writeData(tx);
+        proto.write(tx, port);
         FwCmd cmd;
         if(last) cmd = proto.getRspLoadAppDataReady();
         else     cmd = proto.getRspLoadAppData();
 
         byte[] rx;
         try {
-            Thread.sleep(5);
-            rx = proto.readFrame(cmd, ID, connHandler);
+            rx = proto.readFrame(cmd, ID, port);
         }catch (Exception e){
             throw new Exception(e);
         }
@@ -147,14 +154,14 @@ public class TkeyClient {
     /**
      * getNameVersion gets the name and version from the TKey firmware
      */
-    public String getNameVersion() throws Exception {
+    public static String getNameVersion() throws Exception {
         byte[] data = getData(proto.getCmdGetNameVersion(), proto.getRspGetNameVersion());
         return unpackName(data);
     }
 
     /**
      * Unpacks name and prints it to the console.
-     * @return the concated string, which can be used elsewhere.
+     * @return the concated string.
      */
     public static String unpackName(byte[] raw) {
         String name0 = new String(raw, 1, 4);
@@ -164,10 +171,9 @@ public class TkeyClient {
     }
 
     /**
-     * getUDI gets the UDI (Unique Device ID) from the TKey firmware, and returns
-     * a UDI object.
+     * getUDI gets the UDI (Unique Device ID) from the TKey firmware, and returns a UDI object.
      */
-    public UDI getUDI() throws Exception {
+    public static UDI getUDI() throws Exception {
         byte[] data = getData(proto.getCmdGetUDI(), proto.getRspGetUDI());
         return unpackUDI(data);
     }
@@ -201,34 +207,83 @@ public class TkeyClient {
      * getData is used in both getNameVersion and getUDI to send instructions and receive
      * replies + data from the TKey.
      */
-    public byte[] getData(FwCmd command, FwCmd response) throws Exception {
+    public static byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = proto.newFrameBuf(command, ID);
-        connHandler.writeData(tx_byte);
-        Thread.sleep(10);
-        return proto.readFrame(response, ID, connHandler);
+        proto.write(tx_byte, port);
+        return proto.readFrame(response, 2, port);
     }
 
-    public void write(byte[] tx){
-        connHandler.writeData(tx);
+    private static byte[] readFile(String fileName) throws IOException {
+        return java.nio.file.Files.readAllBytes(new File(fileName).toPath());
     }
 
-    public byte[] read(int bytes) throws IOException {
-        return connHandler.readData(bytes);
+    /**
+     * Establishes a connection to the TKey selecting a com port automatically.
+     */
+    public static SerialConnHandler connect() throws Exception {
+        connHandler = new SerialConnHandler();
+        connHandler.connect();
+        port = connHandler.getConn();
+        return connHandler;
     }
 
-    public byte[] readFrame(FwCmd cmd, int id) throws Exception {
-        return proto.readFrame(cmd, id,connHandler);
+    /*
+     * The following methods are used as abstractions to avoid the need for class:Proto to be called directly.
+     */
+    public void setReadTimeout(int r, int w){
+        connHandler.setReadTimeout(r,w);
     }
 
-    public void connect(){
-        connHandler.connectDevice();
+    public static void write(byte[] tx) throws Exception {
+        proto.write(tx,port);
     }
 
-    public boolean isConnected(){
-        return connHandler.isConnected();
+    public static byte[] readFrame(FwCmd cmd, int id) throws Exception {
+        return proto.readFrame(cmd, id,port);
     }
 
-    public void clearIO() throws IOException {
-        connHandler.clear();
+    public void dump(String s, byte[] tx) throws Exception {
+        proto.dump(s, tx);
+    }
+
+    public static byte[] newFrameBuf(FwCmd cmd,int id) throws Exception {
+        return proto.newFrameBuf(cmd,id);
+    }
+
+    /*
+     * The following methods are used for specific IO actions if default behavior needs to be changed.
+     */
+
+    /**
+     * Establishes a connection to the TKey on the specified port (string name).
+     */
+    public static SerialConnHandler connect(String comport) throws Exception {
+        connHandler = new SerialConnHandler();
+        connHandler.connect();
+        port = connHandler.getConn();
+        return connHandler;
+    }
+
+    public static void close(){
+        connHandler.closePort();
+    }
+
+    public static void withSpeed(int speed){
+        connHandler.setSpeed(speed);
+    }
+
+    public static void setCOMPort(String port) {
+        connHandler.setConn(port);
+    }
+
+    /**
+     * Prevents program from crashing in certain cases (for example if app is loaded after UDI is retrieved).
+     */
+    public static void clearIO(){
+        connHandler.flush();
+    }
+
+    public static boolean getHasCon(){
+        return connHandler.getHasCon();
     }
 }
