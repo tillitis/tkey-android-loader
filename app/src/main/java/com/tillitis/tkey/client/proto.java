@@ -4,6 +4,7 @@
  */
 package com.tillitis.tkey.client;
 import static com.tillitis.tkey.client.CmdLen.*;
+import com.fazecast.jSerialComm.SerialPort;
 
 public class proto {
     /**
@@ -75,7 +76,7 @@ public class proto {
      */
     protected void write(byte[] d, SerialPort con) throws Exception {
         try{
-            con.writeData(d, d.length);
+            con.writeBytes(d, d.length);
         }catch(Exception e){
             throw new Exception("Couldn't write" + e);
         }
@@ -97,40 +98,43 @@ public class proto {
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
         validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        byte[] rxHdr;
+        byte[] rxHdr = new byte[1];
+        int n;
         try{
-            rxHdr = con.readData(1);
+            n = con.readBytes(rxHdr,1);
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
+        validate(n, 1, Integer.MAX_VALUE, "Read timeout!");
+
         FramingHdr hdr;
         try{
+            Thread.sleep(1);
             hdr = parseFrame(rxHdr[0]);
         }catch(Exception e){
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
         }
         if(hdr.getResponseNotOk()){
-            con.readData(hdr.getCmdLen().getBytelen());
+            byte[] rest = new byte[hdr.getCmdLen().getBytelen()];
+            con.readBytes(rest,con.bytesAvailable());
             throw new Exception("Response status not OK");
         }
-        if(hdr.getCmdLen() != expectedResp.getCmdLen()) System.out.println("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
+        if(hdr.getCmdLen() != expectedResp.getCmdLen()) throw new Exception("Expected cmdlen " + expectedResp.getCmdLen() + " , got" + hdr.getCmdLen());
 
-        if(hdr.getID() != expectedID) System.out.println("miss-match ID" + " real id: " + hdr.getID() + " expected id: " + expectedID);
-
-        if(hdr.getEndpoint() != eEndpoint) System.out.println("miss-match endpoint" + " real end: " + hdr.getEndpoint() + " expected end: " + eEndpoint);
+        //validate(hdr.getEndpoint(), eEndpoint, eEndpoint, "Msg not meant for us, dest: " + hdr.getEndpoint());
+        //validate(hdr.getID(), expectedID, expectedID, "Expected ID: " + expectedID + " got: " + hdr.getID());
 
         byte[] rx = new byte[1+(expectedResp.getCmdLen().getBytelen())];
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
             Thread.sleep(10); //Required, otherwise entire readBuffer is not read
-            rx = con.readData(rx.length);
+            con.readBytes(rx,rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
         if(rx[0] != eRespCode){
-            System.out.println("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
-            System.out.println("If this happens more than once during app loading, check device app and restart is recommended!");
+            throw new Exception("Expected cmd code 0x" + eRespCode + ", got 0x" + rx[1]);
         }
         return rx;
     }
@@ -145,36 +149,29 @@ public class proto {
     public FwCmd getCmdGetNameVersion() {
         return cmdGetNameVersion;
     }
-
     public FwCmd getRspGetNameVersion() {
         return rspGetNameVersion;
     }
-
     public FwCmd getCmdLoadApp() {
         return cmdLoadApp;
     }
-
     public FwCmd getRspLoadApp() {
         return rspLoadApp;
     }
-
     public FwCmd getCmdLoadAppData() {
         return cmdLoadAppData;
     }
-
     public FwCmd getRspLoadAppData() {
         return rspLoadAppData;
     }
-
     public FwCmd getRspLoadAppDataReady() {
         return rspLoadAppDataReady;
     }
-
     public FwCmd getCmdGetUDI() {
         return cmdGetUDI;
     }
-
     public FwCmd getRspGetUDI() {
         return rspGetUDI;
     }
 }
+

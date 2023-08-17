@@ -3,15 +3,17 @@
  * SPDX-License-Identifier: GPL-2.0-only
  */
 package com.tillitis.tkey;
+import android.app.Application;
 import android.content.*;
 import android.hardware.usb.*;
 import androidx.fragment.app.*;
+
+import com.fazecast.jSerialComm.SerialPort;
 import com.tillitis.tkey.client.*;
 import com.tillitis.tkey.fragments.*;
 import android.app.PendingIntent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ScrollView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -31,10 +33,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        usbComm = new SerialPort(this);
         tkeyClient = new TkeyClient();
-        tkeyClient.main(usbComm);
-
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
 
@@ -81,7 +80,11 @@ public class MainActivity extends AppCompatActivity {
                     UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if(device != null){
-                            usbComm.connectDevice();
+                            try {
+                                tkeyClient.connect();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
                             commonController.setConnected(true);
                         }
                     } else {
@@ -89,6 +92,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                Application app = getApplication();
+
+                SerialPort.setAndroidContext(app);
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null && !usbManager.hasPermission(device)) {
                     usbManager.requestPermission(device, permissionIntent);
