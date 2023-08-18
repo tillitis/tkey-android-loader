@@ -97,14 +97,16 @@ public class proto {
         validate(eEndpoint, 0, 3, "Endpoint must be 0..3");
         validate(expectedResp.getCmdLen().getByteVal(), 0, 3, "cmdLen must be 0..3");
 
-        byte[] rxHdr = null;
+        byte[] rxHdr;
         try{
+
             rxHdr = con.readData(1);
         }catch(Exception e){
             throw new Exception("Read failed, error: " + e);
         }
         FramingHdr hdr;
         try{
+            Thread.sleep(10);
             hdr = parseFrame(rxHdr[0]);
         }catch(Exception e){
             throw new Exception("Couldn't parse framing header. Failed with error: " + e);
@@ -123,7 +125,7 @@ public class proto {
         rx[0] = rxHdr[0];
         int eRespCode = expectedResp.getCode();
         try{
-            Thread.sleep(10); //Required, otherwise entire readBuffer is not read
+            Thread.sleep(100);
             rx = con.readData(rx.length);
         } catch(Exception e){
             throw new Exception("Read failed, error: " + e);

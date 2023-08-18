@@ -5,6 +5,8 @@
 package com.tillitis.tkey.controllers;
 import com.tillitis.tkey.client.*;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
 import com.google.android.material.snackbar.Snackbar;
@@ -19,17 +21,15 @@ public class ToolsController {
     }
 
     public void getTKNameOnClick(View v) {
-        String rsp;
-        try {
-            tk.clearIO();
-            String name = tk.getNameVersion();
-            cc.appendText(name + "\n");
-            rsp = "Got Name";
-        } catch (Exception e) {
-            rsp = "Failed to get name";
-            cc.appendText(rsp + "\n");
-        }
-        Snackbar.make(v, rsp, Snackbar.LENGTH_LONG).setAction("Action", null).show();
+        new Thread(() -> {
+            try {
+                String name = tk.getNameVersion();
+                new Handler(Looper.getMainLooper()).post(() -> cc.appendText(name + "\n"));
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> cc.appendText("Failed to get name" + "\n"));
+            }
+            new Handler(Looper.getMainLooper()).post(() -> Snackbar.make(v, "Got Name", Snackbar.LENGTH_LONG).setAction("Action", null).show());
+        }).start();
     }
 
     public void getUDIButtonOnClick(View v) {

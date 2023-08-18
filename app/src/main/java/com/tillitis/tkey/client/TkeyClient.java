@@ -131,7 +131,6 @@ public class TkeyClient {
 
         byte[] rx;
         try {
-            Thread.sleep(5);
             rx = proto.readFrame(cmd, ID, connHandler);
         }catch (Exception e){
             throw new Exception(e);
@@ -204,7 +203,7 @@ public class TkeyClient {
     public byte[] getData(FwCmd command, FwCmd response) throws Exception {
         byte[] tx_byte = proto.newFrameBuf(command, ID);
         connHandler.writeData(tx_byte);
-        Thread.sleep(10);
+        Thread.sleep(100);
         return proto.readFrame(response, ID, connHandler);
     }
 
@@ -212,16 +211,15 @@ public class TkeyClient {
         connHandler.writeData(tx);
     }
 
-    public byte[] read(int bytes) throws IOException {
-        return connHandler.readData(bytes);
-    }
-
     public byte[] readFrame(FwCmd cmd, int id) throws Exception {
         return proto.readFrame(cmd, id,connHandler);
     }
 
+    /**
+     * This branch auto-connects to the TKey, making the button and controls unnecessary.
+     */
     public void connect(){
-        connHandler.connectDevice();
+        //todo
     }
 
     public boolean isConnected(){
@@ -229,6 +227,6 @@ public class TkeyClient {
     }
 
     public void clearIO() throws IOException {
-        //
+        // NA
     }
 }

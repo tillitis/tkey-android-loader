@@ -1,59 +1,80 @@
-/*
- * Copyright (C) 2022, 2023 - Tillitis AB
- * SPDX-License-Identifier: GPL-2.0-only
- */
 package com.tillitis.tkey;
+
 import android.content.*;
 import android.hardware.usb.*;
 import androidx.fragment.app.*;
 import com.tillitis.tkey.client.*;
 import com.tillitis.tkey.fragments.*;
-import android.app.PendingIntent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.view.View;
-import android.widget.ScrollView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.snackbar.Snackbar;
 import com.tillitis.tkey.controllers.CommonController;
-
 import java.lang.ref.WeakReference;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String ACTION_USB_PERMISSION = "com.iknek.tkey.USB_PERMISSION";
+
     private TkeyClient tkeyClient;
     private CommonController commonController;
     private UsbService usbService;
-    private PendingIntent permissionIntent;
-    private UsbManager usbManager;
+
+    private final ServiceConnection usbConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName arg0, IBinder arg1) {
+            usbService = ((UsbService.UsbBinder) arg1).getService();
+            tkeyClient.main(usbService);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            usbService = null;
+        }
+    };
+
+    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case UsbService.ACTION_USB_PERMISSION_GRANTED:
+                    Toast.makeText(context, "USB Ready", Toast.LENGTH_SHORT).show();
+                    break;
+                case UsbService.ACTION_USB_PERMISSION_NOT_GRANTED:
+                    Toast.makeText(context, "USB Permission not granted", Toast.LENGTH_SHORT).show();
+                    break;
+                case UsbService.ACTION_NO_USB:
+                    Toast.makeText(context, "No USB connected", Toast.LENGTH_SHORT).show();
+                    break;
+                case UsbService.ACTION_USB_DISCONNECTED:
+                    Toast.makeText(context, "USB disconnected", Toast.LENGTH_SHORT).show();
+                    break;
+                case UsbService.ACTION_USB_NOT_SUPPORTED:
+                    Toast.makeText(context, "USB device not supported", Toast.LENGTH_SHORT).show();
+                    break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        usbService = new UsbService(this);
+
         tkeyClient = new TkeyClient();
-        tkeyClient.main(usbService);
-
-        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-
         commonController = new CommonController(findViewById(R.id.response_msg), findViewById(R.id.scroll), tkeyClient);
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        registerReceiver(usbReceiver, filter);
+
+        startService(UsbService.class, usbConnection, null);
+        setFilters();
 
         setupFragments();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, new ToolsFragment());
         transaction.commit();
+
     }
 
     private void setupFragments() {
@@ -64,9 +85,9 @@ public class MainActivity extends AppCompatActivity {
             int itemId = item.getItemId();
             if (itemId == R.id.action_tkey_tools)
                 selectedFragment = new ToolsFragment();
-             else if (itemId == R.id.action_signer)
+            else if (itemId == R.id.action_signer)
                 selectedFragment = new SignerFragment(tkeyClient);
-             else if (itemId == R.id.action_verify)
+            else if (itemId == R.id.action_verify)
                 selectedFragment = new VerifyFragment();
 
             getSupportFragmentManager().beginTransaction()
@@ -75,53 +96,51 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * USB Reciever for handling when a TKey is plugged in.
-     */
-    private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (ACTION_USB_PERMISSION.equals(action)) {
-                synchronized (this) {
-                    UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if(device != null){
-                            usbService.connectDevice();
-                            commonController.setConnected(true);
-                        }
-                    } else {
-                        System.out.println("Permission denied for device " + device);
-                    }
-                }
-            } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null && !usbManager.hasPermission(device)) {
-                    usbManager.requestPermission(device, permissionIntent);
-                    commonController.setConnected(false);
-                }
-            } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                commonController.setConnected(false);
-                commonController.setLoaded(false);
-                if (device != null) {
-                    View view = getWindow().getDecorView().findViewById(android.R.id.content);
-                    Snackbar.make(view, "TKey disconnected!", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+    @Override
+    public void onResume() {
+        super.onResume();
+        setFilters();
+        startService(UsbService.class, usbConnection, null);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        unregisterReceiver(mUsbReceiver);
+        unbindService(usbConnection);
+    }
+
+    private void startService(Class<?> service, ServiceConnection serviceConnection, Bundle extras) {
+        if (!UsbService.SERVICE_CONNECTED) {
+            Intent startService = new Intent(this, service);
+            if (extras != null && !extras.isEmpty()) {
+                Set<String> keys = extras.keySet();
+                for (String key : keys) {
+                    String extra = extras.getString(key);
+                    startService.putExtra(key, extra);
                 }
             }
+            startService(startService);
         }
-    };
+        Intent bindingIntent = new Intent(this, service);
+        bindService(bindingIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void setFilters() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbService.ACTION_USB_PERMISSION_GRANTED);
+        filter.addAction(UsbService.ACTION_NO_USB);
+        filter.addAction(UsbService.ACTION_USB_DISCONNECTED);
+        filter.addAction(UsbService.ACTION_USB_NOT_SUPPORTED);
+        filter.addAction(UsbService.ACTION_USB_PERMISSION_NOT_GRANTED);
+        registerReceiver(mUsbReceiver, filter);
+    }
 
     public TkeyClient getClient(){
         return tkeyClient;
-    }
-
-    public void requestPermission(UsbDevice device) {
-        usbManager.requestPermission(device, permissionIntent);
     }
 
     public CommonController getCommonController() {
         return commonController;
     }
 }
-
-

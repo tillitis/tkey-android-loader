@@ -25,10 +25,27 @@
             android:label="TKey Loader"
             android:theme="@style/Theme.Tkey">
             <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="com.tillitis.tkey.USB_PERMISSION" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
         </activity>
+        <service
+            android:name="com.tillitis.tkey.client.UsbService"
+            android:enabled="true">
+        </service>
 
     </application>
 
