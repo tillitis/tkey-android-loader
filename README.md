@@ -1,4 +1,7 @@
 # TKey-android-loader
+
+*WARNING*: Unsupported and unmaintained.
+
 !!This is a WIP. Certain features and functions (such as signing and verifying) have not yet been implemented/are not fully functional!!
 
 This is a simple app that allows one to load apps onto the [Tillitis TKey](https://www.tillitis.se) using an Android device, as well as sign files and verify the TKey. 
